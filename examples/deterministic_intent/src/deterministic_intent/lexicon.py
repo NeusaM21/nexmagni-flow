@@ -26,6 +26,12 @@ class Cue(Enum):
     NEGATOR = "negator"
     HYPOTHETICAL = "hypothetical"
     POLICY = "policy"
+    QUESTION = "question"
+    # Message-level cues: "later" makes any non-refusal answer doubtful.
+    DEFERRAL = "deferral"
+    # Neutral filler: consumes idioms such as "no problem" so that their "no"
+    # is not read as a refusal. Carries no meaning of its own.
+    NEUTRAL = "neutral"
 
 
 ACTION_CUES: frozenset[Cue] = frozenset(
@@ -56,7 +62,7 @@ _PHRASES: dict[Cue, tuple[str, ...]] = {
     Cue.ATTEND: (
         "i will be there", "will be there", "see you", "see you then", "see you there",
         "i am coming", "i will come", "count me in", "will make it", "can make it",
-        "on my way", "i will attend",
+        "on my way", "i will attend", "see you later",
     ),
     Cue.CANNOT_ATTEND: (
         "can not make it", "will not make it", "not going to make it",
@@ -81,6 +87,16 @@ _PHRASES: dict[Cue, tuple[str, ...]] = {
     Cue.POLICY: (
         "policy", "fee", "fees", "charge", "charged", "penalty", "deadline", "rule",
         "rules", "refund", "how far in advance", "how late", "free",
+    ),
+    Cue.QUESTION: (
+        "did you", "did it", "did i", "have you", "has it", "has my", "was it", "was my",
+        "is it", "is my", "is the", "has the",
+    ),
+    Cue.DEFERRAL: (
+        "later", "not yet", "wait", "hold on", "in a bit",
+    ),
+    Cue.NEUTRAL: (
+        "no problem", "no worries", "not a problem", "no prob",
     ),
 }
 

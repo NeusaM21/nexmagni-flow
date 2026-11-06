@@ -100,7 +100,7 @@ def parse_label(raw: object) -> Intent | None
 | Step | Condition | Result | Model called? |
 |---|---|---|---|
 | 1 | `None`, empty, or only invisible characters | `fallback`, `FALLBACK`, `EMPTY_INPUT` | No |
-| 2 | Asks for a person ("a person", "human", "speak to someone"...) | `HUMAN_HANDOFF`, `RULE` | No |
+| 2 | Asks for a person ("a person", "human", "speak to someone", "manager", "supervisor"...) | `HUMAN_HANDOFF`, `RULE` | No |
 | 3 | `in_booking_flow=True` | `BOOKING`, `RULE` | No |
 | 4 | The whole message is a greeting or thanks | `SMALL_TALK`, `RULE` | No |
 | 5 | Mentions prices, services, hours, or location | `SERVICE_INFO`, `RULE` | No |
@@ -176,6 +176,7 @@ Invariants:
 ## Limitations
 
 - English only, with small keyword lists. Rules can misfire, which is acceptable because they only route and never act.
+- Human-request words win even when they are not a request ("Is the manager in on Saturday?" or "I don't need a human" also go to `HUMAN_HANDOFF`). This errs toward a person, never toward an automated transaction.
 - When a message matches several rules, the first one in the table wins (for example, a price question that also says "book" goes to `SERVICE_INFO`).
 - There is no total time budget: worst-case latency is `max_attempts` × the client's own timeout plus the backoff delays.
 - Sanitization is not a complete prompt-injection defense; the four-label output contract is.

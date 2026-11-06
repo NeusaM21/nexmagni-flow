@@ -67,3 +67,32 @@ def test_rules_match_whole_words_only(message):
     result = route(message, client=client, sleep=lambda _s: None)
     assert result.source is Source.MODEL
     assert client.calls == 1
+
+
+MANAGER_REQUESTS = [
+    "I want to speak to the manager",
+    "Can I talk to a supervisor?",
+    "Is someone in charge available?",
+    "put me through to the person in charge",
+    "SUPERVISOR please",
+    "can a staff member help?",
+    "I need the receptionist",
+    "live agent",
+]
+
+
+@pytest.mark.parametrize("in_booking_flow", [False, True])
+@pytest.mark.parametrize("message", MANAGER_REQUESTS)
+def test_manager_and_supervisor_requests_hand_off_without_the_model(message, in_booking_flow):
+    result, client = routed(message, in_booking_flow=in_booking_flow)
+    assert (result.intent, result.source, result.rule) == (
+        Intent.HUMAN_HANDOFF, Source.RULE, "human_request"
+    )
+    assert client.calls == 0
+
+
+@pytest.mark.parametrize("message", ["managerial", "stuff", "agent", "in charge of what?"])
+def test_new_human_words_still_match_whole_words_only(message):
+    client = ScriptedClient(["SMALL_TALK"])
+    result = route(message, client=client, sleep=lambda _s: None)
+    assert result.source is Source.MODEL

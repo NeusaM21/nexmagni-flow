@@ -28,7 +28,8 @@ def _phrases(*items: str) -> tuple[tuple[str, ...], ...]:
 HUMAN_PHRASES = _phrases(
     "human", "a person", "real person", "talk to someone", "speak to someone",
     "speak with someone", "talk with someone", "representative", "operator",
-    "staff member", "the owner",
+    "staff member", "the owner", "manager", "supervisor", "someone in charge",
+    "person in charge", "staff", "receptionist", "live agent", "real agent",
 )
 GREETINGS = frozenset(
     _phrases(

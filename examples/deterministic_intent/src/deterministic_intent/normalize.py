@@ -80,8 +80,22 @@ def tokenize(text: str) -> Clause:
     return tuple(tokens)
 
 
+def split_marked_clauses(text: str) -> tuple[tuple[Clause, bool], ...]:
+    """Like `split_clauses`, also reporting whether each clause ends with "?"."""
+    folded = fold(text)
+    marked: list[tuple[Clause, bool]] = []
+    start = 0
+    for match in _CLAUSE_BREAK.finditer(folded):
+        clause = tokenize(folded[start : match.start()])
+        if clause:
+            marked.append((clause, "?" in match.group()))
+        start = match.end()
+    clause = tokenize(folded[start:])
+    if clause:
+        marked.append((clause, False))
+    return tuple(marked)
+
+
 def split_clauses(text: str) -> tuple[Clause, ...]:
     """Fold, split into clauses, and tokenize. Empty clauses are dropped."""
-    folded = fold(text)
-    clauses = (tokenize(part) for part in _CLAUSE_BREAK.split(folded))
-    return tuple(clause for clause in clauses if clause)
+    return tuple(clause for clause, _ in split_marked_clauses(text))

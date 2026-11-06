@@ -12,11 +12,14 @@ CORPUS = (
     "is there a fee?", "not sure", "maybe", "yesterday", "cancel and reschedule",
     "Can you cancel my booking?", "never mind", "I'm not coming", "\U0001F44D",
     "Something came up", "see you then", "absolutely not", "thanks!",
+    "Did you cancel it?", "did you cancel it", "Can you cancel it?", "Is it cancelled?",
+    "yes but later", "ok, not yet", "later", "see you later", "No problem", "No worries",
+    "no problem, cancel it",
 )
 
 WEAK_REASONS = {
-    Reason.NEGATED, Reason.HYPOTHETICAL, Reason.POLICY_QUESTION, Reason.CONFLICTING,
-    Reason.EMPTY, Reason.NO_SIGNAL,
+    Reason.NEGATED, Reason.HYPOTHETICAL, Reason.POLICY_QUESTION, Reason.QUESTION,
+    Reason.CONFLICTING, Reason.EMPTY, Reason.NO_SIGNAL,
 }
 
 CASES = [(message, context) for message in CORPUS for context in Context]

@@ -79,11 +79,28 @@ def test_conflicting_answers_ask_for_clarification(message):
     assert decision.action is Action.ASK_CLARIFICATION
 
 
-def test_documented_limitation_unknown_words_are_ignored():
-    # README "Limitations": "later" is not in the vocabulary, so this reads as yes.
-    result, decision = run("yes but later")
-    assert (result.intent, result.reason) == (Intent.AFFIRM, Reason.EXPLICIT)
-    assert decision.action is Action.CONFIRM_BOOKING
+@pytest.mark.parametrize(
+    "message",
+    ["yes but later", "ok, later", "yes, not yet", "sure, hold on", "yes. wait", "ok in a bit"],
+)
+def test_deferred_yes_asks_instead_of_booking(message):
+    result, decision = run(message)
+    assert (result.intent, result.reason) == (Intent.UNCLEAR, Reason.CONFLICTING)
+    assert decision.action is Action.ASK_CLARIFICATION
+
+
+@pytest.mark.parametrize("message", ["no, later", "nope, not yet"])
+def test_deferred_refusal_is_still_a_refusal(message):
+    result, decision = run(message)
+    assert (result.intent, result.reason) == (Intent.DENY, Reason.EXPLICIT)
+    assert decision.action is Action.NO_ACTION
+
+
+@pytest.mark.parametrize("message", ["later", "not yet"])
+def test_deferral_alone_asks(message):
+    result, decision = run(message)
+    assert result.intent is Intent.UNCLEAR
+    assert decision.action is Action.ASK_CLARIFICATION
 
 
 @pytest.mark.parametrize("message", ["not sure", "I'm not sure"])

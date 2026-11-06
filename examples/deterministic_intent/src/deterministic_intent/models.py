@@ -35,6 +35,7 @@ class Reason(Enum):
     NEGATED = "negated"
     HYPOTHETICAL = "hypothetical"
     POLICY_QUESTION = "policy_question"
+    QUESTION = "question"
     CONFLICTING = "conflicting"
     NO_SIGNAL = "no_signal"
     EMPTY = "empty"

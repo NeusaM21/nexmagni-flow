@@ -8,7 +8,7 @@ O NEXMAGNI Flow é um portfólio de engenharia baseado em uma aplicação SaaS p
 
 **Foco de engenharia:** Roteamento de intenções assistido por LLM · Fluxos com estado · Ações condicionadas por regras · Human-in-the-loop · Integrações via API · Testes automatizados
 
-**Escopo do portfólio:** A aplicação completa é privada. Este repositório está sendo preparado para publicar documentação de arquitetura, materiais visuais revisados e três exemplos de engenharia independentes, reescritos e testáveis. Os exemplos estão implementados e testados localmente, mas **ainda não foram publicados**.
+**Escopo do portfólio:** A aplicação completa é privada. Este repositório publica documentação de arquitetura e três exemplos de engenharia independentes, reescritos e testáveis, em [`examples/`](examples/); os materiais visuais revisados continuam planejados. A publicação desses exemplos **não** significa que o SaaS completo esteja operacional em produção.
 
 **Idiomas:** [English](README.md) · Português (Brasil, esta versão).
 
@@ -95,7 +95,7 @@ A implementação local, ainda não implantada, acrescenta:
 - **Bloqueio por conversa** para reduzir conflitos de processamento concorrente.
 - **Nova verificação do estado de silêncio antes de enviar** uma mensagem.
 
-Esses recursos estão 🧪 **implementados e testados localmente**, mas não são funcionalidades da versão em produção. O portfólio público demonstrará esses conceitos com exemplos independentes e dados em memória, sem divulgar a implementação proprietária.
+Esses recursos estão 🧪 **implementados e testados localmente**, mas não são funcionalidades da versão em produção. Este portfólio público demonstra esses conceitos com exemplos independentes e dados em memória (consulte a [seção 10](#10-exemplos-públicos-de-engenharia)), sem divulgar a implementação proprietária.
 
 ## 6. Agendamento com estado e automação em segundo plano
 
@@ -140,7 +140,7 @@ A auditoria técnica identificou o seguinte inventário:
 | **613 testes aprovados** | Execuções isoladas relatadas anteriormente na **árvore local do backend**, incluindo alterações pendentes (novembro de 2026); **não representam validação completa de produção** |
 | **17** migrações SQL versionadas | Inventário de migrações do banco de dados |
 
-Os exemplos públicos têm suas **próprias** suítes isoladas com pytest, dados fictícios, dependências simuladas, sem credenciais de produção e sem necessidade de rede. Nas execuções locais, todos os testes foram aprovados: **545** (`deterministic_intent`), **364** (`guarded_llm_router`) e **188** (`hitl_fail_closed`). Consulte a [seção 10](#10-exemplos-públicos-de-engenharia).
+Os exemplos públicos têm suas **próprias** suítes isoladas com pytest, dados fictícios, dependências simuladas, sem credenciais de produção e sem necessidade de rede. Nas execuções locais, todos os testes foram aprovados: **675** (`deterministic_intent`), **432** (`guarded_llm_router`) e **188** (`hitl_fail_closed`), **1.295** no total. Consulte a [seção 10](#10-exemplos-públicos-de-engenharia).
 
 ## 9. Estado da implementação
 
@@ -149,6 +149,7 @@ Os exemplos públicos têm suas **próprias** suítes isoladas com pytest, dados
 | ✅ | Presente na versão implantada do código; **não necessariamente validado ponta a ponta em produção** |
 | 🧪 | Implementado e testado localmente; não implantado |
 | 🟡 | Implementado parcialmente ou limitado a um fluxo não ativo / modo sombra |
+| 📂 | Publicado neste repositório (`examples/`) |
 | 📋 | Planejado para o portfólio público |
 
 | Capacidade | Estado |
@@ -164,22 +165,22 @@ Os exemplos públicos têm suas **próprias** suítes isoladas com pytest, dados
 | Bloqueio consultivo (*advisory lock*) por conversa | 🧪 |
 | Proteção HMAC recente para webhook da Meta | 🧪 |
 | Integração com MetaProvider | 🟡 |
-| Três exemplos públicos independentes de código (testados localmente; ainda não publicados) | 🧪 |
+| Três exemplos públicos independentes de código (1.295 testes aprovados) | 📂 |
 | GIF da interface revisado quanto à privacidade | 📋 |
 
 As alterações mais recentes do backend ainda não foram implantadas. Suas proteções não devem ser apresentadas como ativas no deploy do Render. A implantação do frontend e as verificações de integridade/conectividade não comprovam testes completos de aceitação de todo o sistema.
 
 ## 10. Exemplos públicos de engenharia
 
-A aplicação completa, seus prompts proprietários, regras de agendamento, configurações internas e integrações de produção permanecem privados. Três exemplos **reescritos de maneira independente** foram implementados e testados localmente para este repositório público:
+A aplicação completa, seus prompts proprietários, regras de agendamento, configurações internas e integrações de produção permanecem privados. Três exemplos **reescritos de maneira independente** estão publicados neste repositório:
 
 | Exemplo | O que demonstra | Dependências | Testes locais |
 | --- | --- | --- | --- |
-| [`examples/deterministic_intent/`](examples/deterministic_intent/) | Classificação de sim/não, cancelamento, negação, incerteza e respostas a lembretes | Biblioteca padrão do Python + pytest | 545 aprovados |
-| [`examples/guarded_llm_router/`](examples/guarded_llm_router/) | Rótulos restritos, verificações determinísticas prévias, LLM simulado injetável, tentativas e rota alternativa | Biblioteca padrão do Python + pytest | 364 aprovados |
+| [`examples/deterministic_intent/`](examples/deterministic_intent/) | Classificação de sim/não, cancelamento, negação, incerteza e respostas a lembretes | Biblioteca padrão do Python + pytest | 675 aprovados |
+| [`examples/guarded_llm_router/`](examples/guarded_llm_router/) | Rótulos restritos, verificações determinísticas prévias, LLM simulado injetável, tentativas e rota alternativa | Biblioteca padrão do Python + pytest | 432 aprovados |
 | [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/) | Estados ativo/silenciado/desconhecido, fail-closed, bloqueios por conversa em memória e verificação antes do envio | Biblioteca padrão do Python + pytest | 188 aprovados |
 
-**Esses exemplos estão implementados e testados localmente, mas ainda não foram publicados.** Eles usam código novo e dados fictícios, sem copiar arquivos proprietários. Não são necessárias chaves de API, SDKs externos, banco de dados ativo ou serviços pagos para executar os testes. As suítes de testes foram executadas no Python 3.14; a compatibilidade com Python 3.10+ foi verificada apenas sintaticamente.
+**Esses exemplos estão publicados aqui; a publicação não significa que o SaaS completo esteja operacional em produção.** Eles usam código novo e dados fictícios, sem copiar arquivos proprietários. Não são necessárias chaves de API, SDKs externos, banco de dados ativo ou serviços pagos para executar os testes. As suítes de testes foram executadas no Python 3.14; a compatibilidade com Python 3.10+ foi verificada apenas sintaticamente.
 
 ## 11. Prévia da interface (planejada)
 

@@ -15,7 +15,7 @@ from enum import Enum
 
 from .lexicon import ACTION_CUES, PHRASE_INDEX, Cue
 from .models import Context, Intent, Interpretation, Reason
-from .normalize import Clause, fold, split_clauses
+from .normalize import Clause, fold, split_marked_clauses
 
 _MENU = re.compile(r"(?:option|number|#)?\s*([1-3])")
 _MENU_TRAILING = re.compile(r"[\s.!)]+$")
@@ -35,6 +35,8 @@ class _Mod(Enum):
     DOUBLE_NEGATED = "double_negated"
     HYPOTHETICAL = "hypothetical"
     POLICY = "policy"
+    QUESTION = "question"
+    DEFERRED = "deferred"
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,7 +91,9 @@ _QUALIFIER_PRIORITY: tuple[tuple[_Mod, Reason], ...] = (
     (_Mod.DOUBLE_NEGATED, Reason.CONFLICTING),
     (_Mod.NEGATED, Reason.NEGATED),
     (_Mod.HYPOTHETICAL, Reason.HYPOTHETICAL),
+    (_Mod.QUESTION, Reason.QUESTION),
     (_Mod.POLICY, Reason.POLICY_QUESTION),
+    (_Mod.DEFERRED, Reason.CONFLICTING),
 )
 
 
@@ -101,11 +105,12 @@ def _match_at(clause: Clause, start: int) -> tuple[int, Cue] | None:
     return None
 
 
-def _scan_clause(clause: Clause) -> tuple[list[_Signal], bool]:
+def _scan_clause(clause: Clause, asked: bool = False) -> tuple[list[_Signal], bool, str | None]:
     """Find action cues in one clause and attach the modifiers that precede them.
 
-    Also reports whether the clause holds a negator but no action cue
-    ("sure, I guess not"), which casts doubt on the rest of the message.
+    `asked` marks the whole clause as a question. Also reports whether the
+    clause holds a negator but no action cue ("sure, I guess not") and any
+    deferral phrase ("later"); both cast doubt on the rest of the message.
     """
     found: list[tuple[Cue, str]] = []
     i = 0
@@ -121,17 +126,25 @@ def _scan_clause(clause: Clause) -> tuple[list[_Signal], bool]:
     is_policy_clause = any(cue is Cue.POLICY for cue, _ in found)
     negators = 0
     hypothetical = False
+    question = asked
+    deferral: str | None = None
     signals: list[_Signal] = []
     for cue, phrase in found:
         if cue is Cue.NEGATOR:
             negators += 1
         elif cue is Cue.HYPOTHETICAL:
             hypothetical = True
+        elif cue is Cue.QUESTION:
+            question = True
+        elif cue is Cue.DEFERRAL:
+            deferral = deferral or phrase
         elif cue in ACTION_CUES:
             if hypothetical:
                 mod = _Mod.HYPOTHETICAL
             elif is_policy_clause and cue in (Cue.CANCEL, Cue.RESCHEDULE):
                 mod = _Mod.POLICY
+            elif question:
+                mod = _Mod.QUESTION
             elif negators >= 2:
                 mod = _Mod.DOUBLE_NEGATED
             elif negators == 1:
@@ -151,7 +164,7 @@ def _scan_clause(clause: Clause) -> tuple[list[_Signal], bool]:
         last = signals[-1]
         signals[-1] = _Signal(last.cue, last.phrase, _Mod.NEGATED)
     dangling_negation = not signals and any(cue is Cue.NEGATOR for cue, _ in found)
-    return signals, dangling_negation
+    return signals, dangling_negation, deferral
 
 
 def _menu_choice(message: str) -> Intent | None:
@@ -206,7 +219,7 @@ def interpret(message: str | None, context: Context) -> Interpretation:
     if message is not None and not isinstance(message, str):
         raise TypeError(f"message must be str or None, got {type(message).__name__}")
 
-    clauses = split_clauses(message) if message else ()
+    clauses = split_marked_clauses(message) if message else ()
     if not clauses:
         return Interpretation(Intent.UNCLEAR, Reason.EMPTY)
 
@@ -215,14 +228,23 @@ def interpret(message: str | None, context: Context) -> Interpretation:
         if choice is not None:
             return Interpretation(choice, Reason.MENU_OPTION, (message.strip(),))
 
+    # While a cancellation awaits confirmation, a clause ending in "?" is a
+    # question ("Can you cancel it?"), never the authorization itself.
+    question_marks_matter = context is Context.CANCELLATION_CONFIRMATION
     signals: list[_Signal] = []
     dangling_negation = False
-    for clause in clauses:
-        clause_signals, dangling = _scan_clause(clause)
+    deferral: str | None = None
+    for clause, asked in clauses:
+        clause_signals, dangling, clause_deferral = _scan_clause(clause, asked and question_marks_matter)
         signals.extend(clause_signals)
         dangling_negation = dangling_negation or dangling
+        deferral = deferral or clause_deferral
 
-    # A stray "not" elsewhere doubts any non-refusal answer; a refusal stays a refusal.
-    if dangling_negation and any(s.cue not in _REFUSAL_CUES for s in signals):
+    # A stray "not" or a "later" elsewhere doubts any non-refusal answer;
+    # a refusal stays a refusal.
+    answers = any(s.cue not in _REFUSAL_CUES for s in signals)
+    if dangling_negation and answers:
         signals.append(_Signal(Cue.NEGATOR, "not", _Mod.NEGATED))
+    if deferral is not None and answers:
+        signals.append(_Signal(Cue.DEFERRAL, deferral, _Mod.DEFERRED))
     return _resolve(signals, context)

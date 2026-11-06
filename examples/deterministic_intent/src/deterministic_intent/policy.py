@@ -3,7 +3,8 @@
 Understanding a message (`interpret`) and being allowed to act on it
 (`decide`) are separate steps. The table below is complete: every
 (context, intent) pair has exactly one action. Two guards then downgrade any
-state-changing or destructive action whose evidence is not strong enough.
+state-changing or destructive action whose evidence is not strong enough: a
+cancellation requires an explicit AFFIRM to a cancellation question.
 """
 
 from __future__ import annotations
@@ -42,7 +43,7 @@ POLICY_TABLE: Mapping[tuple[Context, Intent], Action] = MappingProxyType(
         # Cancellation confirmation: "Do you want me to cancel it?"
         (_C, Intent.AFFIRM): Action.CANCEL_APPOINTMENT,
         (_C, Intent.DENY): Action.KEEP_APPOINTMENT,
-        (_C, Intent.REQUEST_CANCEL): Action.CANCEL_APPOINTMENT,  # unreachable: read as AFFIRM here
+        (_C, Intent.REQUEST_CANCEL): ASK,  # only an explicit AFFIRM may cancel
         (_C, Intent.CONFIRM_ATTENDANCE): ASK,
         (_C, Intent.REQUEST_RESCHEDULE): ASK,
         (_C, Intent.UNCLEAR): ASK,
@@ -82,7 +83,9 @@ def decide(interpretation: Interpretation, context: Context) -> Decision:
     if action in STATE_CHANGING_ACTIONS and reason not in _STRONG_REASONS:
         action = ASK
     if action in DESTRUCTIVE_ACTIONS and not (
-        context is Context.CANCELLATION_CONFIRMATION and reason is Reason.EXPLICIT
+        context is Context.CANCELLATION_CONFIRMATION
+        and interpretation.intent is Intent.AFFIRM
+        and reason is Reason.EXPLICIT
     ):
         action = ASK
     return Decision(action, reason)

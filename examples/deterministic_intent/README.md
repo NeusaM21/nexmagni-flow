@@ -77,7 +77,7 @@ def decide(interpretation: Interpretation, context: Context) -> Decision
 |---|---|
 | `Context` | `BOOKING_CONFIRMATION`, `CANCELLATION_CONFIRMATION`, `REMINDER_REPLY`, `OPEN_CONVERSATION` |
 | `Intent` | `AFFIRM`, `DENY`, `REQUEST_CANCEL`, `CONFIRM_ATTENDANCE`, `REQUEST_RESCHEDULE`, `UNCLEAR`, `NO_INTENT` |
-| `Reason` | `EXPLICIT`, `MENU_OPTION`, `NEGATED`, `HYPOTHETICAL`, `POLICY_QUESTION`, `CONFLICTING`, `NO_SIGNAL`, `EMPTY` |
+| `Reason` | `EXPLICIT`, `MENU_OPTION`, `NEGATED`, `HYPOTHETICAL`, `POLICY_QUESTION`, `QUESTION`, `CONFLICTING`, `NO_SIGNAL`, `EMPTY` |
 | `Action` | `CONFIRM_BOOKING`, `CANCEL_APPOINTMENT`, `KEEP_APPOINTMENT`, `RECORD_ATTENDANCE_CONFIRMATION`, `START_CANCELLATION_FLOW`, `START_RESCHEDULE_FLOW`, `ASK_CLARIFICATION`, `NO_ACTION` |
 
 - Both functions are **pure and deterministic**: no I/O, no global mutable state, no network.
@@ -98,9 +98,12 @@ message → fold (case, accents, apostrophes) → split into clauses → expand 
   - *Negation* ("not", "never", "no need to"): "I don't want to cancel" is not a cancellation request. Two negators ("I don't not want to cancel") are treated as conflicting.
   - *Hypothetical* ("if", "in case", "what if", "should I", "whether"): "If I need to cancel, what happens?" is a question, not a request.
   - *Policy question* ("policy", "fee", "how far in advance"...): "What is your cancellation policy?" does not open a cancellation.
+  - *Status question* ("did you", "is it", "is the", "has it", "was my"...): "Did you cancel it?" asks about the appointment; it is not an answer (reason `QUESTION`). While a cancellation is awaiting confirmation, any clause ending in "?" is also a question, so "Can you cancel it?" asks for clarification instead of cancelling.
   - *Stray negation*: a "not" in a clause with no other cue ("sure, I guess not") makes a non-refusal answer doubtful.
+  - *Deferral* ("later", "not yet", "wait", "hold on", "in a bit"): "yes but later" is not a yes for right now, so any non-refusal answer becomes doubtful. "No, later" is still a refusal.
+  - *Neutral idioms* ("no problem", "no worries", "not a problem"): their "no" is not a refusal. On their own they mean neither yes nor no.
 - **Context changes meaning**: "cancel" means *no* when confirming a booking, *yes* when confirming a cancellation, and *a request* in a reminder reply or open conversation.
-- **Resolution**: exactly one intent with no doubtful modifier → `EXPLICIT`. More than one intent, or a clear intent next to a negated/hypothetical cue → `UNCLEAR / CONFLICTING`. Otherwise the strongest modifier explains why nothing was understood.
+- **Resolution**: exactly one intent with no doubtful modifier → `EXPLICIT`. More than one intent, or a clear intent next to a negated, hypothetical, questioned, or deferred cue → `UNCLEAR / CONFLICTING`. Otherwise the strongest modifier explains why nothing was understood.
 - **Reminder menu**: `1` / `2` / `3` (also `option 3`, `#2`) count only when they are the entire message. "I'll be there at 3" is an attendance confirmation, not option 3.
 
 ## Authorization policy
@@ -111,7 +114,7 @@ The policy is a complete, read-only table: every one of the **28** `(Context, In
 |---|---|---|---|---|
 | `AFFIRM` | **CONFIRM_BOOKING** | **CANCEL_APPOINTMENT** ⚠️ | RECORD_ATTENDANCE_CONFIRMATION | NO_ACTION |
 | `DENY` | NO_ACTION | KEEP_APPOINTMENT | ASK_CLARIFICATION | NO_ACTION |
-| `REQUEST_CANCEL` | NO_ACTION¹ | **CANCEL_APPOINTMENT**¹ ⚠️ | START_CANCELLATION_FLOW | START_CANCELLATION_FLOW |
+| `REQUEST_CANCEL` | NO_ACTION¹ | ASK_CLARIFICATION¹ | START_CANCELLATION_FLOW | START_CANCELLATION_FLOW |
 | `CONFIRM_ATTENDANCE` | ASK_CLARIFICATION | ASK_CLARIFICATION | RECORD_ATTENDANCE_CONFIRMATION | NO_ACTION |
 | `REQUEST_RESCHEDULE` | ASK_CLARIFICATION | ASK_CLARIFICATION | START_RESCHEDULE_FLOW | START_RESCHEDULE_FLOW |
 | `UNCLEAR` | ASK_CLARIFICATION | ASK_CLARIFICATION | ASK_CLARIFICATION | ASK_CLARIFICATION |
@@ -122,7 +125,7 @@ The policy is a complete, read-only table: every one of the **28** `(Context, In
 Two guards run after the table lookup:
 
 1. A **state-changing** action requires reason `EXPLICIT` or `MENU_OPTION`; otherwise it becomes `ASK_CLARIFICATION`.
-2. The only **destructive** action, `CANCEL_APPOINTMENT`, additionally requires context `CANCELLATION_CONFIRMATION` and reason `EXPLICIT`.
+2. The only **destructive** action, `CANCEL_APPOINTMENT`, additionally requires context `CANCELLATION_CONFIRMATION`, intent `AFFIRM`, and reason `EXPLICIT`. The policy enforces this itself, even for an `Interpretation` built by a caller.
 
 Consequences:
 
@@ -150,7 +153,7 @@ Invariants checked across the corpus:
 1. A destructive action happens only in `CANCELLATION_CONFIRMATION`, with intent `AFFIRM` and reason `EXPLICIT`.
 2. Any state change requires reason `EXPLICIT` or `MENU_OPTION`.
 3. `UNCLEAR` always results in `ASK_CLARIFICATION`.
-4. Negated, hypothetical, policy, conflicting, empty, or no-signal input never changes state.
+4. Negated, hypothetical, policy, question, conflicting, empty, or no-signal input never changes state.
 5. Reminder replies never produce `CANCEL_APPOINTMENT`.
 6. The same input always produces the same output.
 
@@ -160,10 +163,11 @@ This is a teaching-sized rule set, not a general language model:
 
 - English only, with a deliberately small vocabulary. Unknown phrasing falls back to `ASK_CLARIFICATION` or `NO_ACTION`.
 - No sarcasm, spelling correction, or semantic similarity.
-- "when" is not treated as a hypothetical marker, because "when can you cancel it?" is usually a real request.
-- Words outside the vocabulary are ignored, so "yes but later" is read as a plain yes. A production system would need a richer vocabulary or a follow-up question.
+- "when" is not treated as a hypothetical marker, because "when can you cancel it?" is usually a real request. In a reminder reply or open conversation it only starts the cancellation flow; while a cancellation awaits confirmation, the "?" makes it a question.
+- Words outside the vocabulary are ignored. Deferral is recognized only through a short list ("later", "not yet"...), so "yes, tomorrow" is still read as a plain yes. A production system would need a richer vocabulary or a follow-up question.
 - A clear request next to an unrelated negative clause ("Keep it, I don't want to lose my spot") is treated as doubtful and triggers a clarification question.
-- Status questions such as "did you cancel it?" are read as cancellation requests. This is safe because requests only start a flow.
+- Status questions are recognized only through a short list of openings. In a reminder reply or open conversation, a request phrased as a question ("Can you cancel my booking?") still starts the cancellation flow, which is safe because it then asks for explicit confirmation.
+- While a cancellation awaits confirmation, a polite request ending in "?" ("Can you cancel it?") costs one extra question.
 
 ## Project layout
 

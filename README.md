@@ -8,7 +8,7 @@ NEXMAGNI Flow is an engineering portfolio based on a privately developed SaaS ap
 
 **Engineering focus:** LLM-assisted intent routing · Stateful workflows · Rule-gated actions · Human-in-the-loop · API integrations · Automated testing
 
-**Portfolio scope:** The complete application is private. This repository is being prepared to publish architecture documentation, reviewed interface media, and three independently rewritten, testable engineering examples. The examples are implemented and tested locally but **not yet published**.
+**Portfolio scope:** The complete application is private. This repository publishes architecture documentation and three independently rewritten, testable engineering examples in [`examples/`](examples/); reviewed interface media is still planned. Publishing these examples does **not** mean the complete SaaS is operational in production.
 
 **Languages:** English (this file) · [Português (Brasil)](README.pt-BR.md).
 
@@ -95,7 +95,7 @@ The local, not-yet-deployed implementation adds:
 - **Conversation-level locking** to reduce concurrent processing conflicts.
 - **A mute-state recheck before sending** a message.
 
-These are 🧪 **implemented and tested locally**, not production capabilities. The public portfolio will demonstrate their engineering concepts using independent, in-memory examples rather than the proprietary production implementation.
+These are 🧪 **implemented and tested locally**, not production capabilities. This public portfolio demonstrates their engineering concepts with independent, in-memory examples (see [section 10](#10-public-engineering-examples)) rather than the proprietary production implementation.
 
 ## 6. Stateful Scheduling and Background Automation
 
@@ -140,7 +140,7 @@ The technical audit identified the following inventory:
 | **613 passing tests** | Previously reported isolated runs on the **local backend tree**, including pending changes (November 2026); **not** a full production validation |
 | **17** versioned SQL migrations | Database migration inventory |
 
-The public examples have their **own** isolated pytest suites, with fictional data, fake dependencies, no production credentials, and no network requirement. In local runs, all tests passed: **545** (`deterministic_intent`), **364** (`guarded_llm_router`), and **188** (`hitl_fail_closed`). See [section 10](#10-public-engineering-examples).
+The public examples have their **own** isolated pytest suites, with fictional data, fake dependencies, no production credentials, and no network requirement. In local runs, all tests passed: **675** (`deterministic_intent`), **432** (`guarded_llm_router`), and **188** (`hitl_fail_closed`), **1,295** in total. See [section 10](#10-public-engineering-examples).
 
 ## 9. Implementation Status
 
@@ -149,6 +149,7 @@ The public examples have their **own** isolated pytest suites, with fictional da
 | ✅ | Present in the deployed code/version; **not necessarily end-to-end production validated** |
 | 🧪 | Implemented and tested locally; not deployed |
 | 🟡 | Partially implemented or limited to a non-live/shadow-mode path |
+| 📂 | Published in this repository (`examples/`) |
 | 📋 | Planned for the public portfolio |
 
 | Capability | Status |
@@ -164,22 +165,22 @@ The public examples have their **own** isolated pytest suites, with fictional da
 | Conversation-level advisory locking | 🧪 |
 | Recent Meta webhook HMAC protection | 🧪 |
 | MetaProvider integration | 🟡 |
-| Three independent public code examples (tested locally; not yet published) | 🧪 |
+| Three independent public code examples (1,295 tests passed) | 📂 |
 | Privacy-reviewed interface GIF | 📋 |
 
 Newer backend changes are not yet deployed. Their protections must not be represented as active in the Render deployment. Frontend deployment and health/connectivity checks do not establish full system-wide acceptance testing.
 
 ## 10. Public Engineering Examples
 
-The complete application, its proprietary prompts, scheduling rules, internal configuration, and production integrations remain private. Three **independently rewritten** examples have been implemented and tested locally for this public repository:
+The complete application, its proprietary prompts, scheduling rules, internal configuration, and production integrations remain private. Three **independently rewritten** examples are published in this repository:
 
 | Example | What it demonstrates | Dependencies | Local tests |
 | --- | --- | --- | --- |
-| [`examples/deterministic_intent/`](examples/deterministic_intent/) | Yes/no, cancellation, negation, uncertainty, and reminder-response classification | Python standard library + pytest | 545 passed |
-| [`examples/guarded_llm_router/`](examples/guarded_llm_router/) | Restricted labels, deterministic prechecks, injected fake LLM, retries, and fallback | Python standard library + pytest | 364 passed |
+| [`examples/deterministic_intent/`](examples/deterministic_intent/) | Yes/no, cancellation, negation, uncertainty, and reminder-response classification | Python standard library + pytest | 675 passed |
+| [`examples/guarded_llm_router/`](examples/guarded_llm_router/) | Restricted labels, deterministic prechecks, injected fake LLM, retries, and fallback | Python standard library + pytest | 432 passed |
 | [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/) | Active/muted/unknown states, fail-closed handling, in-memory per-conversation locks, pre-send recheck | Python standard library + pytest | 188 passed |
 
-**These examples are implemented and tested locally but not yet published.** They use new code and fictional data, not copied proprietary files. No API keys, external SDKs, live database, or paid services are required to run their tests. The test suites were executed on Python 3.14; Python 3.10+ compatibility was verified syntactically only.
+**These examples are published here; publishing them does not mean the complete SaaS is operational in production.** They use new code and fictional data, not copied proprietary files. No API keys, external SDKs, live database, or paid services are required to run their tests. The test suites were executed on Python 3.14; Python 3.10+ compatibility was verified syntactically only.
 
 ## 11. Interface Preview (Planned)
 
