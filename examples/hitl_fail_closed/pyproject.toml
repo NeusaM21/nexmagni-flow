@@ -1,0 +1,8 @@
+# Test configuration only. This example is not packaged or installed:
+# pytest adds ./src to sys.path through the `pythonpath` option (pytest 7+).
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-ra"
