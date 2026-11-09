@@ -105,6 +105,12 @@ Um agendamento não se resume a uma resposta do LLM. Ele exige continuidade entr
 
 ```mermaid
 stateDiagram-v2
+    state "Conversa ativa" as ActiveConversation
+    state "Aguardando confirmação" as AwaitingConfirmation
+    state "Confirmado" as Confirmed
+    state "Cancelado" as Cancelled
+    state "Atendimento humano" as HumanAssistance
+
     [*] --> ActiveConversation
     ActiveConversation --> AwaitingConfirmation: Ação proposta
     AwaitingConfirmation --> Confirmed: Sim explícito
