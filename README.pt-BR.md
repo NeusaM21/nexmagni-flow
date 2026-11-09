@@ -238,4 +238,8 @@ Este repositório é um **portfólio técnico**, não uma oferta de produto SaaS
 
 *Versão em inglês americano: [README.md](README.md). As duas versões apresentam informações técnicas, indicadores de estado e diagramas equivalentes.*
 
-<p align="center"><a href="https://github.com/NeusaM21"><b>← Voltar ao portfólio principal</b></a></p>
+<p align="center">
+  <a href="https://github.com/NeusaM21">
+    <img src="https://img.shields.io/badge/%E2%AC%85%20VOLTAR%20PARA%20O%20PORTF%C3%93LIO%20PRINCIPAL-1F6FEB?style=for-the-badge" alt="Voltar para o portfólio principal">
+  </a>
+</p>

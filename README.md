@@ -232,4 +232,8 @@ This repository is a **technical portfolio**, not an offer of a fully operationa
 
 *Portuguese (Brazil) edition: [README.pt-BR.md](README.pt-BR.md). Both editions use equivalent facts, status indicators, and diagrams.*
 
-<p align="center"><a href="https://github.com/NeusaM21"><b>← Back to the main portfolio</b></a></p>
+<p align="center">
+  <a href="https://github.com/NeusaM21">
+    <img src="https://img.shields.io/badge/%E2%AC%85%20BACK%20TO%20THE%20MAIN%20PORTFOLIO-1F6FEB?style=for-the-badge" alt="Back to the main portfolio">
+  </a>
+</p>
