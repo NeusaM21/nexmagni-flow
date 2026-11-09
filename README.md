@@ -1,3 +1,5 @@
+![NEXMAGNI Flow - AI-Powered SaaS Platform](assets/nexmagni-flow-banner.png)
+
 # NEXMAGNI Flow
 
 ### AI Automation · Intelligent Agents · Python Backend Engineering
