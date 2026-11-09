@@ -212,13 +212,24 @@ Visual materials will avoid exposing customer records, access emails, phone numb
 
 Developed by a **Bachelor of Science in Computer Science candidate at Universidade Cruzeiro do Sul, São Paulo, Brazil (expected graduation: late 2026)**, with practical focus on Python backend engineering, FastAPI, API integration, business automation, and conversational AI.
 
-**Professional focus:** Backend Python · AI Automation Engineer · AI Agent Developer  
-**GitHub:** [NeusaM21](https://github.com/NeusaM21)
-
 This repository is a **technical portfolio**, not an offer of a fully operational commercial SaaS product. The complete application remains proprietary and private.
 
-**Copyright: All rights reserved.** Public access to this repository does not itself grant permission to reproduce, modify, or redistribute its contents. Any future licensing of independent examples will be decided separately.
+---
+
+## 13. Author
+
+**Neusa M.** · Python Backend Developer · AI Automation Engineer · AI Agent Developer
+
+- **Email:** [contact.neusam21@gmail.com](mailto:contact.neusam21@gmail.com)
+- **GitHub:** [github.com/NeusaM21](https://github.com/NeusaM21)
+- **LinkedIn:** [linkedin.com/in/neusam21](https://www.linkedin.com/in/neusam21/)
+
+## 14. License and Usage
+
+**All rights reserved.** No open-source license is granted. Public access to this repository does not itself grant permission to reproduce, modify, or redistribute its contents. Any future licensing of independent examples will be decided separately. For permission requests, please contact the author by email.
 
 ---
 
 *Portuguese (Brazil) edition: [README.pt-BR.md](README.pt-BR.md). Both editions use equivalent facts, status indicators, and diagrams.*
+
+<p align="center"><a href="https://github.com/NeusaM21"><b>← Back to the main portfolio</b></a></p>

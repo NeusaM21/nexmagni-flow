@@ -218,13 +218,24 @@ Os materiais visuais não deverão expor registros de clientes, e-mails de acess
 
 Desenvolvido por estudante do **Bacharelado em Ciência da Computação na Universidade Cruzeiro do Sul, São Paulo, Brasil, com previsão de conclusão no final de 2026**, com foco prático em engenharia backend com Python, FastAPI, integração de APIs, automação empresarial e IA conversacional.
 
-**Foco profissional:** Backend Python · AI Automation Engineer · AI Agent Developer  
-**GitHub:** [NeusaM21](https://github.com/NeusaM21)
-
 Este repositório é um **portfólio técnico**, não uma oferta de produto SaaS comercial plenamente operacional. A aplicação completa permanece proprietária e privada.
 
-**Direitos autorais: todos os direitos reservados.** O acesso público ao repositório não concede, por si só, permissão para reproduzir, modificar ou redistribuir seu conteúdo. Qualquer licenciamento futuro dos exemplos independentes será decidido separadamente.
+---
+
+## 13. Autora
+
+**Neusa M.** · Desenvolvedora Backend Python · Engenheira de Automação com IA · Desenvolvedora de Agentes de IA
+
+- **E-mail:** [contact.neusam21@gmail.com](mailto:contact.neusam21@gmail.com)
+- **GitHub:** [github.com/NeusaM21](https://github.com/NeusaM21)
+- **LinkedIn:** [linkedin.com/in/neusam21](https://www.linkedin.com/in/neusam21/)
+
+## 14. Licença e utilização
+
+**Todos os direitos reservados.** Nenhuma licença de código aberto é concedida. O acesso público ao repositório não concede, por si só, permissão para reproduzir, modificar ou redistribuir seu conteúdo. Qualquer licenciamento futuro dos exemplos independentes será decidido separadamente. Para solicitar permissão, entre em contato com a autora por e-mail.
 
 ---
 
 *Versão em inglês americano: [README.md](README.md). As duas versões apresentam informações técnicas, indicadores de estado e diagramas equivalentes.*
+
+<p align="center"><a href="https://github.com/NeusaM21"><b>← Voltar ao portfólio principal</b></a></p>
