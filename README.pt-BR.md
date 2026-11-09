@@ -190,6 +190,22 @@ A aplicação completa, seus prompts proprietários, regras de agendamento, conf
 
 **Esses exemplos estão publicados aqui; a publicação não significa que o SaaS completo esteja operacional em produção.** Eles usam código novo e dados fictícios, sem copiar arquivos proprietários. Não são necessárias chaves de API, SDKs externos, banco de dados ativo ou serviços pagos para executar os testes. As suítes de testes foram executadas no Python 3.14; a compatibilidade com Python 3.10+ foi verificada apenas sintaticamente.
 
+### Demonstração
+
+Animações curtas geradas a partir da saída real dos exemplos em Python, com dados fictícios.
+
+[![Demonstração animada de deterministic_intent: quatro respostas fictícias de clientes e a decisão tomada em cada uma](media/deterministic_intent_pt-BR.gif)](examples/deterministic_intent/)
+
+**`deterministic_intent`**: confirmação, contradição, cancelamento e uma pergunta hipotética que não dispara nenhuma ação, a partir da saída de `python -m deterministic_intent`. Código: [`examples/deterministic_intent/`](examples/deterministic_intent/).
+
+[![Demonstração animada de guarded_llm_router: LLM simulado, tentativa de injeção de prompt, fallback após timeouts e encaminhamento a um humano](media/guarded_llm_router_pt-BR.gif)](examples/guarded_llm_router/)
+
+**`guarded_llm_router`**: regras primeiro e um LLM **simulado** (sem chamadas de API). Uma tentativa de injeção de prompt continua limitada a um de quatro rótulos, timeouts repetidos terminam no fallback `SERVICE_INFO` e um pedido para falar com uma pessoa vai para `HUMAN_HANDOFF` sem chamar o modelo. Código: [`examples/guarded_llm_router/`](examples/guarded_llm_router/).
+
+[![Demonstração animada de hitl_fail_closed: uma execução roteirizada com silenciamento durante a geração, aprovação vencida, falha de armazenamento, estado ilegível e reativação humana](media/hitl_fail_closed_pt-BR.gif)](examples/hitl_fail_closed/)
+
+**`hitl_fail_closed`**: uma execução roteirizada com threads reais. Silenciar o robô durante a geração bloqueia a resposta pendente, uma aprovação vencida é rejeitada, uma falha de gravação é informada em vez de tratada como bloqueio, o estado ilegível bloqueia a automação e somente uma aprovação humana válida a reativa. Código: [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/).
+
 ## 11. Prévia da interface (planejada)
 
 A interface administrativa inclui gerenciamento de empresas e serviços, visualizações relacionadas a agendamentos e funcionalidades de CRM. Está prevista uma demonstração curta e silenciosa com **ScreenToGif**, além de capturas de tela selecionadas, após revisão de privacidade quadro a quadro.

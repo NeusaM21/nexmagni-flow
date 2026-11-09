@@ -184,6 +184,22 @@ The complete application, its proprietary prompts, scheduling rules, internal co
 
 **These examples are published here; publishing them does not mean the complete SaaS is operational in production.** They use new code and fictional data, not copied proprietary files. No API keys, external SDKs, live database, or paid services are required to run their tests. The test suites were executed on Python 3.14; Python 3.10+ compatibility was verified syntactically only.
 
+### Demo Preview
+
+Short animations generated from the real output of the Python examples, using fictional data.
+
+[![Animated demo of deterministic_intent: four fictional customer replies and the decision taken for each](media/deterministic_intent.gif)](examples/deterministic_intent/)
+
+**`deterministic_intent`**: confirmation, contradiction, cancellation, and a hypothetical question that triggers no action, rendered from `python -m deterministic_intent` output. Source: [`examples/deterministic_intent/`](examples/deterministic_intent/).
+
+[![Animated demo of guarded_llm_router: a simulated LLM, a prompt-injection attempt, a timeout fallback, and a human handoff](media/guarded_llm_router.gif)](examples/guarded_llm_router/)
+
+**`guarded_llm_router`**: rules first and a **simulated** LLM (no API calls). A prompt-injection attempt can still only produce one of four labels, repeated timeouts end in a `SERVICE_INFO` fallback, and a request for a person goes to `HUMAN_HANDOFF` without calling the model. Source: [`examples/guarded_llm_router/`](examples/guarded_llm_router/).
+
+[![Animated demo of hitl_fail_closed: one scripted run covering a mute during generation, a stale approval, a store failure, an unreadable store, and human reactivation](media/hitl_fail_closed.gif)](examples/hitl_fail_closed/)
+
+**`hitl_fail_closed`**: one scripted run with real threads. A mute during generation blocks the pending reply, a stale approval is rejected, a failed write is reported rather than treated as a block, unreadable state blocks automation, and only a valid human approval reactivates it. Source: [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/).
+
 ## 11. Interface Preview (Planned)
 
 The administrative interface includes company and service management, scheduling-related views, and CRM-related functionality. A short, silent **ScreenToGif** walkthrough and selected screenshots are planned after frame-by-frame privacy review.
