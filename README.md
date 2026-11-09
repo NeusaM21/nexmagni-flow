@@ -10,6 +10,8 @@ NEXMAGNI Flow is an engineering portfolio based on a privately developed SaaS ap
 
 **Engineering focus:** LLM-assisted intent routing · Stateful workflows · Rule-gated actions · Human-in-the-loop · API integrations · Automated testing
 
+**Quick links:** [Demos](#demo-preview) · [Python examples](#10-public-engineering-examples) · [Architecture](#2-architecture)
+
 **Portfolio scope:** The complete application is private. This repository publishes architecture documentation and three independently rewritten, testable engineering examples in [`examples/`](examples/); reviewed interface media is still planned. Publishing these examples does **not** mean the complete SaaS is operational in production.
 
 **Languages:** English (this file) · [Português (Brasil)](README.pt-BR.md).
