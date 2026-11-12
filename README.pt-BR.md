@@ -100,11 +100,11 @@ flowchart TD
 
 **O modelo auxilia na interpretação; a lógica da aplicação decide o que de fato acontece.**
 
-- **Orquestrador de intenções:** verificações determinísticas são executadas primeiro (nomes de serviços, perguntas sobre preço, palavras-chave de agendamento, pedidos de atendimento humano, etapas de conversa em andamento). Só então o LLM é acionado para classificar a mensagem em **quatro categorias permitidas de intenção**. Ele realiza até **três tentativas**, com **um segundo de espera** entre elas, e recorre a uma rota segura quando a classificação falha ou retorna um rótulo inesperado.
+- **Orquestrador de intenções:** verificações determinísticas são executadas primeiro (nomes de serviços, perguntas sobre preço, palavras-chave de agendamento, pedidos de atendimento humano, etapas de conversa em andamento). Só então o LLM é acionado para classificar a mensagem em **quatro categorias permitidas de intenção**. Ele realiza até **três tentativas** e recorre a uma rota segura quando a classificação falha ou retorna um rótulo inesperado.
 - **Agente de atendimento:** responde com base nos serviços e preços cadastrados por cada empresa e detecta pedidos de atendimento humano.
-- **Agente de agendamento:** conversa com estado e em várias etapas (serviço, data, horário, confirmação), com **expiração da sessão após 30 minutos** e recuperação contra ciclos repetitivos após tentativas sucessivas sem sucesso.
+- **Agente de agendamento:** conversa com estado e em várias etapas (serviço, data, horário, confirmação), com **expiração da sessão após 30 minutos** e recuperação automática após tentativas repetidas sem sucesso (*anti-loop*).
 - **Ações condicionadas por regras:** uma resposta gerada pelo modelo nunca é tratada como decisão de negócio validada. Agendamentos, cancelamentos e confirmações passam por regras explícitas da aplicação e verificações no banco de dados.
-- **Interpretação determinística ampliada (iteração mais recente, em implantação):** respostas curtas como "sim", "não", "cancelar", opções numeradas e respostas a lembretes são interpretadas com regras explícitas. Negações, frases hipotéticas e respostas ambíguas levam a um pedido de esclarecimento em vez de uma ação. Implementada e coberta por testes dedicados no código privado.
+- **Interpretação determinística ampliada (iteração mais recente):** respostas curtas como "sim", "não", "cancelar", opções numeradas e respostas a lembretes são interpretadas com regras explícitas. Negações, frases hipotéticas e respostas ambíguas levam a um pedido de esclarecimento em vez de uma ação. Implementada e validada por testes dedicados no código privado.
 
 Os exemplos públicos [`guarded_llm_router`](examples/guarded_llm_router/) e [`deterministic_intent`](examples/deterministic_intent/) demonstram esses padrões com código independente.
 
@@ -144,7 +144,7 @@ stateDiagram-v2
 
 - **Agendador de horários:** gera e mantém a disponibilidade automaticamente para cada empresa.
 - **Política de lembretes por empresa:** antecedência configurável de lembretes e pedidos de confirmação, acompanhamento quando o cliente não responde, sinalização de risco de falta e horário de silêncio.
-- **Projeto de transição gradual:** um caminho mais recente de execução de lembretes acrescenta uma máquina de estados explícita e idempotência baseada em reivindicação (*claim*), controlado por uma chave de autoridade por empresa (`legacy` / `draining` / `new`), para que o novo caminho assuma o envio sem mensagens duplicadas ou perdidas.
+- **Arquitetura de transição gradual:** um caminho mais recente de execução de lembretes acrescenta uma máquina de estados explícita e idempotência baseada em reserva (*claim*), controlado por uma chave de autoridade por empresa (`legacy` / `draining` / `new`), para que o novo caminho assuma o envio, com mecanismos para prevenir duplicações e perdas de mensagens.
 - **Motor de decisão de comunicação:** um motor dedicado (análise de contexto, política de comunicação, máquina de estados e despachante) que decide qual mensagem cada agendamento precisa e quando. Ele roda no agendador implantado em **modo sombra** (*shadow mode*): as decisões são calculadas e persistidas, e as mensagens são registradas em vez de enviadas, de modo que o motor seja validado com dados reais antes de assumir o envio.
 - **Teste de estresse:** 500 ciclos consecutivos em um banco PostgreSQL real resultaram em 0 exceções, 0 mensagens duplicadas, 0 regressões de estado e 0 inconsistências de persistência, com tempos de ciclo estáveis.
 
@@ -169,7 +169,7 @@ flowchart LR
 *Arquitetura da camada de mensageria. O uso atual de cada caminho é descrito abaixo.*
 
 - **Resolução de provedor por empresa:** um `ProviderResolver` combina roteamento (`empresa + canal → provedor`), contas de provedor (configuração não secreta) e um cofre de segredos baseado no **Supabase Vault**. Uma `ProviderFactory` constrói então o adaptador concreto.
-- **Ports e adaptadores:** interfaces de repositório e de armazenamento de segredos, com implementações em PostgreSQL/Supabase. Uma chave estrangeira composta impede que uma empresa referencie a conta de provedor de outra, e os valores secretos são mascarados nas representações dos objetos.
+- **Portas e adaptadores (*ports and adapters*):** interfaces de repositório e de armazenamento de segredos, com implementações em PostgreSQL/Supabase. Uma chave estrangeira composta impede que uma empresa referencie a conta de provedor de outra, e os valores secretos são mascarados nas representações dos objetos.
 - **Adaptadores:**
   - **Z-API**: a integração com o WhatsApp utilizada nos fluxos validados de conversa e agendamento, incluindo botões interativos com alternativa automática para texto simples.
   - **Meta WhatsApp Cloud API**: adaptador para mensagens de texto baseado em configuração por empresa e credenciais no Vault, coberto por testes unitários.
@@ -186,13 +186,13 @@ A automação precisa saber quando parar.
 
 - **Transferência para atendimento humano:** pedidos explícitos para falar com uma pessoa, detectados por regras e pelos agentes, silenciam o robô naquela conversa. As respostas automáticas são retomadas após a reativação pelo painel.
 - **Integridade transacional:** bloqueio de linhas e atualizações atômicas protegem agendamentos, reagendamentos e fechamentos de agenda.
-- **Isolamento de falhas:** o caminho do LLM tem novas tentativas e rotas alternativas seguras; caminhos opcionais de observação rodam em limites de erro isolados e nunca interrompem o ciclo principal de lembretes; os adaptadores de provedores devolvem resultados estruturados em vez de lançar exceções em falhas de entrega esperadas.
+- **Isolamento de falhas:** o caminho do LLM tem novas tentativas e rotas alternativas seguras; caminhos opcionais de observação rodam com isolamento de falhas para proteger o ciclo principal de lembretes; os adaptadores de provedores devolvem resultados estruturados em vez de lançar exceções em falhas de entrega esperadas.
 
-**Iteração mais recente (implementada e testada, em implantação)**
+**Iteração mais recente (implementada e validada por testes no código privado)**
 
-- **Controle fail-closed:** o estado do robô é modelado como **ativo / silenciado / desconhecido**. O estado desconhecido é tratado como bloqueado, de modo que a automação nunca prossegue quando a permissão não pode ser confirmada, e a reativação é exclusivamente manual.
+- **Controle fail-closed:** o estado do robô é modelado como **ativo / silenciado / desconhecido**. O estado desconhecido é tratado como bloqueado, de modo que a automação não prossegue quando a permissão não pode ser confirmada, e a reativação é exclusivamente manual.
 - **Concorrência:** bloqueios consultivos (*advisory locks*) por conversa no PostgreSQL serializam mensagens simultâneas do mesmo cliente.
-- **Nova verificação antes do envio:** o estado de silêncio é verificado novamente imediatamente antes do envio, de modo que a assunção do atendimento por uma pessoa durante a geração da IA bloqueia a resposta pendente.
+- **Nova verificação antes do envio:** o estado de silêncio é verificado novamente imediatamente antes do envio, de modo que, se uma pessoa assumir o atendimento enquanto a IA gera a resposta, a resposta pendente é bloqueada.
 
 O exemplo público [`hitl_fail_closed`](examples/hitl_fail_closed/) demonstra o modelo de estados fail-closed, o bloqueio por conversa e a nova verificação antes do envio com threads reais.
 
@@ -230,9 +230,9 @@ Consulte a [Demonstração](#demonstração) para ver execuções animadas de ca
 ## Escopo do projeto
 
 - **Plataforma privada, exemplos públicos:** o código-fonte completo do NEXMAGNI Flow é proprietário. Este repositório documenta sua arquitetura e publica exemplos independentes de técnicas selecionadas.
-- **Implantação das salvaguardas recentes:** o controle fail-closed de três estados, o bloqueio por conversa, a nova verificação antes do envio, a interpretação determinística ampliada e um webhook de entrada da Meta em modo de observação estão implementados e testados no código privado e em processo de implantação no ambiente publicado.
-- **Provedores de mensageria:** conversas e agendamentos pelo WhatsApp foram validados por meio da integração com a Z-API. O resolver e a factory multiprovider rodam em modo de observação, e o adaptador da Meta Cloud API está implementado e coberto por testes unitários, pronto para o provisionamento do canal.
-- **Separação entre empresas:** a separação de dados entre empresas é garantida na camada de aplicação, por meio de consultas filtradas por empresa. Políticas de segurança em nível de linha (RLS) por empresa no banco de dados fazem parte do roteiro de reforço de segurança.
+- **Salvaguardas recentes:** o controle fail-closed de três estados, o bloqueio por conversa, a nova verificação antes do envio, a interpretação determinística ampliada e um webhook de entrada da Meta em modo de observação estão implementados e validados por testes no código privado.
+- **Provedores de mensageria:** conversas e agendamentos pelo WhatsApp foram validados por meio da integração com a Z-API. O resolver e a factory multiprovider rodam em modo de observação, e o adaptador da Meta Cloud API está implementado e coberto por testes unitários para mensagens de texto, preparado para o provisionamento do canal.
+- **Separação entre empresas:** a separação de dados entre empresas é implementada na camada de aplicação, por meio de consultas filtradas por empresa. Políticas de segurança em nível de linha (RLS) por empresa não estão configuradas no banco de dados; elas fazem parte do roteiro de reforço de segurança.
 
 ## Autora
 

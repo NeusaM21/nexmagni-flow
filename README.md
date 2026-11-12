@@ -100,11 +100,11 @@ flowchart TD
 
 **The model helps interpret; application logic decides what actually happens.**
 
-- **Intent orchestrator:** deterministic checks run first (service names, pricing questions, booking keywords, human requests, active conversation steps). Only then is the LLM asked to classify the message into **four permitted intent categories**. It makes up to **three attempts** with a **one-second wait** between them, and falls back to a safe route when classification fails or returns an unexpected label.
+- **Intent orchestrator:** deterministic checks run first (service names, pricing questions, booking keywords, human requests, active conversation steps). Only then is the LLM asked to classify the message into **four permitted intent categories**. It makes up to **three attempts** and falls back to a safe route when classification fails or returns an unexpected label.
 - **Customer service agent:** answers using each business's registered services and prices, and detects requests for a human operator.
 - **Scheduling agent:** a stateful, multi-step conversation (service, date, time, confirmation) with a **30-minute session timeout** and anti-loop recovery after repeated failed attempts.
 - **Rule-gated actions:** a model-generated response is never treated as a validated business decision. Bookings, cancellations and confirmations go through explicit application rules and database checks.
-- **Extended deterministic interpretation (latest iteration, being rolled out):** short replies such as "yes", "no", "cancel", numbered options and responses to reminders are interpreted with explicit rules. Negation, hypothetical wording and ambiguous answers lead to clarification instead of action. Implemented and covered by dedicated tests in the private codebase.
+- **Extended deterministic interpretation (latest iteration):** short replies such as "yes", "no", "cancel", numbered options and responses to reminders are interpreted with explicit rules. Negation, hypothetical wording and ambiguous answers lead to clarification instead of action. Implemented and validated through dedicated tests in the private codebase.
 
 The public [`guarded_llm_router`](examples/guarded_llm_router/) and [`deterministic_intent`](examples/deterministic_intent/) examples demonstrate these patterns with independent code.
 
@@ -138,7 +138,7 @@ stateDiagram-v2
 
 - **Slot scheduler:** generates and maintains availability automatically per company.
 - **Reminder policy per company:** configurable reminder and confirmation lead times, follow-up when a customer does not respond, no-show risk marking and quiet hours.
-- **Gradual cutover design:** a newer reminder execution path adds an explicit state machine and claim-based idempotency, governed by a per-company authority switch (`legacy` / `draining` / `new`) so that the new path can take over without duplicate or lost messages.
+- **Gradual cutover design:** a newer reminder execution path adds an explicit state machine and claim-based idempotency, governed by a per-company authority switch (`legacy` / `draining` / `new`) so that the new path can take over sending, with mechanisms to prevent duplicate and lost messages.
 - **Communication decision engine:** a dedicated engine (context analysis, communication policy, state machine and dispatcher) that decides which message each appointment needs and when. It runs on the deployed scheduler in **shadow mode**: decisions are computed and persisted, and messages are recorded instead of sent, so the engine is validated against real data before it takes over sending.
 - **Stress-tested:** 500 consecutive cycles against a real PostgreSQL database produced 0 exceptions, 0 duplicate messages, 0 state regressions and 0 persistence inconsistencies, with stable cycle times.
 
@@ -180,11 +180,11 @@ Automation must know when to stop.
 
 - **Human handoff:** explicit requests for a person, detected by rules and by the agents, mute the robot for that conversation. Automated replies resume after reactivation from the dashboard.
 - **Transactional integrity:** row-level locking and atomic updates protect bookings, rescheduling and schedule closures.
-- **Failure isolation:** the LLM path has retries and safe fallbacks; optional observation paths run inside isolated error boundaries and never interrupt the main reminder cycle; provider adapters return structured results instead of raising on expected delivery failures.
+- **Failure isolation:** the LLM path has retries and safe fallbacks; optional observation paths run with failure isolation to protect the main reminder cycle; provider adapters return structured results instead of raising on expected delivery failures.
 
-**Latest iteration (implemented and tested, being rolled out)**
+**Latest iteration (implemented and validated through tests in the private codebase)**
 
-- **Fail-closed control:** the robot state is modeled as **active / muted / unknown**. Unknown is treated as blocked, so automation never proceeds when permission cannot be confirmed, and reactivation is exclusively manual.
+- **Fail-closed control:** the robot state is modeled as **active / muted / unknown**. Unknown is treated as blocked, so automation does not proceed when permission cannot be confirmed, and reactivation is exclusively manual.
 - **Concurrency:** conversation-level advisory locks in PostgreSQL serialize concurrent messages from the same customer.
 - **Pre-send re-check:** the mute state is re-checked immediately before sending, so a human takeover during AI generation blocks the pending reply.
 
@@ -224,9 +224,9 @@ See the [Demo Preview](#demo-preview) for animated runs of each example.
 ## Project Scope
 
 - **Private platform, public examples:** the full NEXMAGNI Flow source code is proprietary. This repository documents its architecture and publishes independent examples of selected techniques.
-- **Rollout of recent safeguards:** the three-state fail-closed control, conversation-level locking, pre-send re-check, extended deterministic interpretation and an inbound Meta webhook in observation mode are implemented and tested in the private codebase and are being rolled out to the deployed environment.
-- **Messaging providers:** WhatsApp conversations and bookings were validated through the Z-API integration. The multi-provider resolver and factory run in observation mode, and the Meta Cloud API adapter is implemented and unit-tested, ready for channel provisioning.
-- **Tenant isolation:** data separation between companies is enforced in the application layer through company-scoped queries. Database-level per-tenant row-level security policies are part of the hardening roadmap.
+- **Recent safeguards:** the three-state fail-closed control, conversation-level locking, pre-send re-check, extended deterministic interpretation and an inbound Meta webhook in observation mode are implemented and validated through tests in the private codebase.
+- **Messaging providers:** WhatsApp conversations and bookings were validated through the Z-API integration. The multi-provider resolver and factory run in observation mode, and the Meta Cloud API adapter is implemented and covered by unit tests for text messaging, prepared for channel provisioning.
+- **Tenant isolation:** data separation between companies is implemented in the application layer through company-scoped queries. Database-level per-tenant row-level security (RLS) policies are not configured; they are part of the security hardening roadmap.
 
 ## Author
 
