@@ -4,45 +4,71 @@
 
 ### Automação com IA · Agentes Inteligentes · Engenharia Backend com Python
 
-**Plataforma multiempresa de comunicação e agendamentos, desenvolvida com Python, FastAPI, React e PostgreSQL.**
+**Plataforma SaaS multiempresa para atendimento e agendamentos via WhatsApp, desenvolvida com Python, FastAPI, React e PostgreSQL.**
 
-O NEXMAGNI Flow é um portfólio de engenharia baseado em uma aplicação SaaS privada, desenvolvida para empresas que trabalham com agendamentos. O projeto demonstra como agentes conversacionais especializados, regras de negócio determinísticas, tarefas em segundo plano e controles de intervenção humana podem atuar em conjunto na automação empresarial.
+O NEXMAGNI Flow é uma aplicação SaaS desenvolvida de forma privada para empresas que trabalham com agendamentos. Ela combina agentes de IA especializados, regras de negócio determinísticas, agendamento transacional, automação em segundo plano e controles de intervenção humana (*human-in-the-loop*) para conduzir conversas e agendamentos de ponta a ponta: da primeira mensagem no WhatsApp até o agendamento exibido no painel administrativo.
 
-**Foco de engenharia:** Roteamento de intenções assistido por LLM · Fluxos com estado · Ações condicionadas por regras · Human-in-the-loop · Integrações via API · Testes automatizados
+Este repositório apresenta a arquitetura e as decisões de engenharia do sistema, junto com três exemplos independentes e executáveis em Python que demonstram técnicas selecionadas de forma isolada.
 
-**Links rápidos:** [Demonstrações](#demonstração) · [Exemplos em Python](#10-exemplos-públicos-de-engenharia) · [Arquitetura](#2-arquitetura)
+**Links rápidos:** [Demonstrações](#demonstração) · [Exemplos em Python](#exemplos-públicos-de-engenharia) · [Arquitetura](#arquitetura-do-sistema) · [Mensageria multiprovider](#arquitetura-de-mensageria-multiprovider)
 
-**Escopo do portfólio:** A aplicação completa é privada. Este repositório publica documentação de arquitetura e três exemplos de engenharia independentes, reescritos e testáveis, em [`examples/`](examples/); os materiais visuais revisados da interface continuam planejados. A publicação desses exemplos **não** significa que o SaaS completo esteja operacional em produção.
-
-**Idiomas:** [English](README.md) · Português (Brasil, esta versão).
+**Idiomas:** [English](README.md) · Português (Brasil, esta versão)
 
 ---
 
-## 1. O que a aplicação faz
+## Destaques de engenharia
 
-A aplicação oferece recursos de comunicação empresarial e operações de agendamento por meio de um painel administrativo e de uma API Python. Entre as funcionalidades implementadas estão:
+- **Validação de ponta a ponta:** integração com o WhatsApp validada por meio de conversas e agendamentos reais de clientes, da mensagem ao agente de IA, PostgreSQL, API REST e painel React.
+- **SaaS full-stack:** backend FastAPI com mais de 75 endpoints REST, painel administrativo em React e modelo de dados multiempresa em PostgreSQL/Supabase, evoluído por meio de 17 migrações SQL versionadas.
+- **Orquestração de IA com salvaguardas:** roteamento de intenções assistido por LLM, restrito a um conjunto fechado de rótulos, com verificações determinísticas prévias, novas tentativas e rota alternativa (*fallback*). As ações de negócio permanecem sob controle da aplicação.
+- **Motor de agendamento transacional:** reagendamento, fechamentos de agenda com prévia de conflitos, geração automática de horários e base para múltiplos profissionais.
+- **Arquitetura de mensageria extensível:** contrato independente de provedor, com *Resolver*, *Factory* e adaptadores (Z-API, Meta Cloud API, Shadow) por empresa e credenciais armazenadas no Supabase Vault.
+- **Qualidade de engenharia:** 2.716 testes de regressão do backend aprovados em uma execução de validação registrada, e um teste de estresse de 500 ciclos do motor de decisão de comunicação em um banco PostgreSQL real, sem nenhuma decisão duplicada.
+- **Exemplos públicos executáveis:** três projetos Python independentes, com **1.295 testes aprovados** próprios, publicados em [`examples/`](examples/).
 
-- **Comunicação com clientes:** atendimento conversacional e fluxos de agendamento.
-- **Fluxos de agendamento:** conversas em várias etapas, confirmações, expiração de sessão e recuperação após tentativas repetidas sem sucesso.
-- **Administração empresarial:** configuração de empresas e serviços, visualizações de agenda, informações de clientes e interfaces relacionadas a CRM.
-- **Automação em segundo plano:** programação de lembretes, geração de horários disponíveis e motor de decisão de comunicação operando em modo sombra (*shadow mode*).
-- **Intervenção humana:** detecção de solicitações de atendimento humano e controles para pausar respostas automatizadas.
-- **Lógica multiempresa:** filtragem de dados por empresa na aplicação, incluindo `empresa_id`.
+## Demonstração
 
-A presença de um componente na versão implantada do código **não significa** que todos os fluxos completos tenham sido validados em produção. Consulte [Estado da implementação](#9-estado-da-implementação).
+Animações curtas geradas a partir da saída real dos exemplos públicos em Python, com dados fictícios.
 
-## 2. Arquitetura
+[![Demonstração animada de deterministic_intent: quatro respostas fictícias de clientes e a decisão tomada em cada uma](media/deterministic_intent_pt-BR.gif)](examples/deterministic_intent/)
 
-| Área | Implementação |
+**`deterministic_intent`**: confirmação, contradição, cancelamento e uma pergunta hipotética que não dispara nenhuma ação, a partir da saída de `python -m deterministic_intent`. Código: [`examples/deterministic_intent/`](examples/deterministic_intent/).
+
+[![Demonstração animada de guarded_llm_router: LLM simulado, tentativa de injeção de prompt, fallback após timeouts e encaminhamento a um humano](media/guarded_llm_router_pt-BR.gif)](examples/guarded_llm_router/)
+
+**`guarded_llm_router`**: regras primeiro e um LLM **simulado** (sem chamadas de API). Uma tentativa de injeção de prompt continua limitada a um de quatro rótulos, timeouts repetidos terminam no fallback `SERVICE_INFO` e um pedido para falar com uma pessoa vai para `HUMAN_HANDOFF` sem chamar o modelo. Código: [`examples/guarded_llm_router/`](examples/guarded_llm_router/).
+
+[![Demonstração animada de hitl_fail_closed: uma execução roteirizada com silenciamento durante a geração, aprovação vencida, falha de armazenamento, estado ilegível e reativação humana](media/hitl_fail_closed_pt-BR.gif)](examples/hitl_fail_closed/)
+
+**`hitl_fail_closed`**: uma execução roteirizada com threads reais. Silenciar o robô durante a geração bloqueia a resposta pendente, uma aprovação vencida é rejeitada, uma falha de gravação é informada em vez de tratada como bloqueio, o estado ilegível bloqueia a automação e somente uma aprovação humana válida a reativa. Código: [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/).
+
+---
+
+## O que eu construí
+
+| Domínio | Capacidades |
+| --- | --- |
+| **Atendimento com IA** | Processamento de webhook do WhatsApp, orquestração de intenções, agente de atendimento baseado nos serviços e preços cadastrados por cada empresa e agente de agendamento com estado |
+| **Agendamento** | Disponibilidade a partir do horário de funcionamento e intervalos, agendamento, confirmação, cancelamento, reagendamento transacional, fechamentos de agenda com detecção de conflitos e modelo de dados para múltiplos profissionais |
+| **Automação** | Geração automática de horários, política de lembretes e confirmações configurável por empresa, horário de silêncio, acompanhamentos (*follow-ups*), sinalização de risco de falta e motor de decisão de comunicação |
+| **Relacionamento com clientes** | Perfis de clientes, registro de comparecimento e fila de recuperação de clientes com estados e registro de contatos manuais |
+| **Administração SaaS** | Cadastro de empresas com aprovação administrativa, gestão de serviços e equipe, visualizações de agenda, relatórios e configuração de provedores de mensageria |
+| **Governança e controles de segurança** | Autenticação JWT, separação entre acesso da empresa e acesso administrativo, logs de auditoria com dados anteriores e posteriores e autoria, modo suporte administrativo com autorização elevada para escrita, endpoints técnicos protegidos para administradores, limitação de tentativas de login e segredos de provedores armazenados no Supabase Vault |
+
+<a id="2-arquitetura"></a>
+
+## Arquitetura do sistema
+
+| Camada | Implementação |
 | --- | --- |
 | Frontend | React 19, JavaScript/JSX, Vite, Tailwind CSS, TanStack Query, React Router |
-| Backend | Python, FastAPI (ASGI), APIs REST |
-| IA conversacional | Google Gemini via `google-genai`, orquestrador de intenções e agentes especializados em atendimento e agendamento |
-| Banco de dados | PostgreSQL / Supabase, migrações SQL versionadas |
-| Mensageria | Integração com WhatsApp; envio direto pela Z-API no fluxo implantado |
-| Processamento em segundo plano | Agendadores de lembretes e horários; motor de decisão de comunicação (modo sombra) |
-| Hospedagem | Frontend na Vercel; backend no Render |
-| Verificação | Testes automatizados em Python e verificações isoladas de componentes |
+| Backend | Python, FastAPI (ASGI), APIs REST, Pydantic, SQLAlchemy |
+| IA conversacional | Google Gemini via `google-genai`; orquestrador de intenções; agentes especializados em atendimento e agendamento |
+| Banco de dados | PostgreSQL / Supabase, migrações SQL versionadas, Supabase Vault |
+| Mensageria | WhatsApp por meio da integração com a Z-API; camada de mensageria independente de provedor, com adaptadores Z-API, Meta Cloud API e Shadow |
+| Processamento em segundo plano | Agendador de lembretes, agendador de horários, motor de decisão de comunicação (modo sombra) |
+| Hospedagem | Vercel (frontend), Render (backend) |
+| Verificação | Suítes pytest abrangendo rotas, serviços, agentes, schema e migrações; validação real de ponta a ponta |
 
 ```mermaid
 flowchart TD
@@ -57,53 +83,34 @@ flowchart TD
     A --> D[Regras de agendamento e estado da conversa]
     S --> DB[(PostgreSQL / Supabase)]
     D --> DB
-    S --> SEND[Fluxo de envio de mensagens]
+    S --> SEND[Envio WhatsApp via Z-API]
     D --> SEND
     DASH[Painel React] -->|API REST / JWT| API[Endpoints FastAPI]
     API --> DB
     JOBS[Agendadores em segundo plano] --> REM[Lembretes e operações de horários]
     REM --> DB
     REM --> SEND
+    JOBS --> ENG[Motor de decisão em modo sombra]
+    ENG --> DB
 ```
 
-*Visão conceitual do sistema implantado, não um mapa completo de chamadas. Proteções mais recentes, existentes apenas localmente, como a nova verificação de mute antes do envio e o bloqueio por conversa, são descritas separadamente abaixo. Há uma abstração de provedores no motor de decisão de comunicação; o fluxo de envio implantado utiliza a Z-API diretamente.*
+*Visão conceitual dos principais fluxos, não um mapa completo de chamadas. A camada multiprovider é descrita em uma seção própria abaixo.*
 
-## 3. Orquestração de IA e agentes especializados
+## Orquestração de IA e agentes inteligentes
 
-**O modelo auxilia na interpretação; a lógica da aplicação controla as ações operacionais.** O orquestrador combina verificações determinísticas com classificação assistida por LLM em **quatro categorias permitidas de intenção**. Ele realiza até **três tentativas**, com **um segundo de espera** entre elas, e utiliza uma rota alternativa (*fallback*) quando a classificação falha ou retorna um rótulo inesperado.
+**O modelo auxilia na interpretação; a lógica da aplicação decide o que de fato acontece.**
 
-O **agente de atendimento** utiliza informações cadastradas da empresa sobre serviços e preços e detecta solicitações de assistência humana. O **agente de agendamento** gerencia conversas com estado, incluindo **expiração da sessão após 30 minutos** e recuperação após tentativas repetidas sem sucesso.
+- **Orquestrador de intenções:** verificações determinísticas são executadas primeiro (nomes de serviços, perguntas sobre preço, palavras-chave de agendamento, pedidos de atendimento humano, etapas de conversa em andamento). Só então o LLM é acionado para classificar a mensagem em **quatro categorias permitidas de intenção**. Ele realiza até **três tentativas**, com **um segundo de espera** entre elas, e recorre a uma rota segura quando a classificação falha ou retorna um rótulo inesperado.
+- **Agente de atendimento:** responde com base nos serviços e preços cadastrados por cada empresa e detecta pedidos de atendimento humano.
+- **Agente de agendamento:** conversa com estado e em várias etapas (serviço, data, horário, confirmação), com **expiração da sessão após 30 minutos** e recuperação contra ciclos repetitivos após tentativas sucessivas sem sucesso.
+- **Ações condicionadas por regras:** uma resposta gerada pelo modelo nunca é tratada como decisão de negócio validada. Agendamentos, cancelamentos e confirmações passam por regras explícitas da aplicação e verificações no banco de dados.
+- **Interpretação determinística ampliada (iteração mais recente, em implantação):** respostas curtas como "sim", "não", "cancelar", opções numeradas e respostas a lembretes são interpretadas com regras explícitas. Negações, frases hipotéticas e respostas ambíguas levam a um pedido de esclarecimento em vez de uma ação. Implementada e coberta por testes dedicados no código privado.
 
-Esses recursos existem no código implantado. Isso não significa que todos os caminhos de conversa tenham passado por testes completos de aceitação ponta a ponta em produção.
+Os exemplos públicos [`guarded_llm_router`](examples/guarded_llm_router/) e [`deterministic_intent`](examples/deterministic_intent/) demonstram esses padrões com código independente.
 
-## 4. Interpretação determinística e ações condicionadas por regras
+## Motor de agendamento e regras de negócio
 
-A aplicação implantada já contém verificações determinísticas de roteamento e regras operacionais de conversação. Uma interpretação mais avançada foi desenvolvida posteriormente na versão local do backend:
-
-| Comportamento | Estado |
-| --- | --- |
-| Verificações determinísticas antes do roteamento e recuperação de sessão | ✅ Implantado |
-| Tratamento avançado de negações, frases hipotéticas e respostas ambíguas de sim/não | 🧪 Local, testado; não implantado |
-| Interpretação mais precisa de cancelamentos e respostas a lembretes | 🧪 Local, testado; não implantado |
-
-O projeto separa a **interpretação da mensagem** da **permissão para executar uma ação**. Uma resposta gerada pelo modelo não equivale a uma decisão de negócio validada; quando necessário, o sistema utiliza regras explícitas da aplicação.
-
-## 5. Intervenção humana e concorrência
-
-O backend implantado possui um **controle binário para silenciar o robô** e permite a transferência do atendimento para uma pessoa, com **reativação manual pelo painel**. Na versão implantada, a reativação não é exclusivamente manual, pois o código de agendamento também pode remover o estado de silêncio. Essa versão não contém o mecanismo mais recente de três estados com bloqueio preventivo (*fail-closed*).
-
-A implementação local, ainda não implantada, acrescenta:
-
-- Estados operacionais **ativo / silenciado / desconhecido**, com o estado desconhecido tratado como bloqueado.
-- Comportamento **fail-closed**, que impede a automação quando a permissão não pode ser confirmada.
-- **Bloqueio por conversa** para reduzir conflitos de processamento concorrente.
-- **Nova verificação do estado de silêncio antes de enviar** uma mensagem.
-
-Esses recursos estão 🧪 **implementados e testados localmente**, mas não são funcionalidades da versão em produção. Este portfólio público demonstra esses conceitos com exemplos independentes e dados em memória (consulte a [seção 10](#10-exemplos-públicos-de-engenharia)), sem divulgar a implementação proprietária.
-
-## 6. Agendamento com estado e automação em segundo plano
-
-Um agendamento não se resume a uma resposta do LLM. Ele exige continuidade entre mensagens, confirmação explícita, gerenciamento de sessão e coordenação com tarefas em segundo plano.
+Um agendamento não se resume a uma resposta do LLM. Ele exige continuidade entre mensagens, confirmação explícita e dados consistentes.
 
 ```mermaid
 stateDiagram-v2
@@ -125,118 +132,125 @@ stateDiagram-v2
     Cancelled --> ActiveConversation
 ```
 
-*Ilustração simplificada dos conceitos de conversação, não a máquina de estados privada de agendamento. O tratamento avançado de ambiguidades mostrado aqui existe apenas localmente (🧪) e não representa uma afirmação sobre o interpretador implantado.*
+*Ilustração simplificada dos conceitos de conversação, não a máquina de estados privada.*
 
-O backend também contém **agendador de lembretes**, **agendador de horários** e **motor de decisão de comunicação (modo sombra)**. O motor em modo sombra avalia agendamentos e registra decisões de envio de mensagens **sem enviá-las**. Esses componentes têm limites distintos de operação e validação.
+- **Motor de disponibilidade:** horários derivados do horário de funcionamento, dias de trabalho, intervalos de almoço e duração dos serviços, com suporte a atendimentos que ocupam vários horários.
+- **Reagendamento transacional:** o novo agendamento e a liberação do horário original ocorrem de forma atômica, tanto pelo painel quanto pelo WhatsApp.
+- **Fechamentos de agenda:** fechamentos globais bloqueiam novas ofertas e agendamentos. Uma prévia de conflitos lista os agendamentos afetados antes que um fechamento seja criado, alterado ou desativado.
+- **Recuperação de clientes:** agendamentos afetados por conflitos de fechamento abrem casos de recuperação automaticamente, com estados e tentativas de contato registrados.
+- **Base para múltiplos profissionais:** profissionais, serviços por profissional e disponibilidade considerando o profissional no modelo de dados e nos serviços de agendamento.
 
-## 7. Integrações, separação entre empresas e limites de segurança
+## Automação e processamento em segundo plano
 
-- **Mensageria:** o fluxo de envio pelo WhatsApp implantado utiliza a Z-API diretamente. Existe uma abstração mais ampla de provedores no motor de decisão de comunicação (modo sombra), mas ela não é o mecanismo universal de envio implantado.
-- **Provedores:** existe um componente para a Meta, porém sua implementação permanece **parcial (🟡)** e não está conectada ao fluxo completo de seleção de provedores.
-- **Segredos:** o backend contém um componente de armazenamento de segredos com Supabase Vault. Isso não comprova que todos os valores de configuração estejam protegidos adequadamente em todos os ambientes.
-- **Cadastro inicial:** a aplicação contém fluxos de cadastro e configuração de empresas.
-- **Filtragem por empresa:** a separação de dados depende principalmente da lógica da aplicação e de filtros por `empresa_id`.
+- **Agendador de horários:** gera e mantém a disponibilidade automaticamente para cada empresa.
+- **Política de lembretes por empresa:** antecedência configurável de lembretes e pedidos de confirmação, acompanhamento quando o cliente não responde, sinalização de risco de falta e horário de silêncio.
+- **Projeto de transição gradual:** um caminho mais recente de execução de lembretes acrescenta uma máquina de estados explícita e idempotência baseada em reivindicação (*claim*), controlado por uma chave de autoridade por empresa (`legacy` / `draining` / `new`), para que o novo caminho assuma o envio sem mensagens duplicadas ou perdidas.
+- **Motor de decisão de comunicação:** um motor dedicado (análise de contexto, política de comunicação, máquina de estados e despachante) que decide qual mensagem cada agendamento precisa e quando. Ele roda no agendador implantado em **modo sombra** (*shadow mode*): as decisões são calculadas e persistidas, e as mensagens são registradas em vez de enviadas, de modo que o motor seja validado com dados reais antes de assumir o envio.
+- **Teste de estresse:** 500 ciclos consecutivos em um banco PostgreSQL real resultaram em 0 exceções, 0 mensagens duplicadas, 0 regressões de estado e 0 inconsistências de persistência, com tempos de ciclo estáveis.
 
-**Limitação importante de RLS:** o RLS está habilitado em **23 tabelas**, mas a configuração auditada **não possui políticas de isolamento entre empresas**, e a conexão do backend pode contornar o RLS. Portanto, seria incorreto afirmar que o RLS atualmente impõe a separação entre empresas. Trata-se de um limite de segurança conhecido, não de uma certificação de isolamento.
+## Arquitetura de mensageria multiprovider
 
-## 8. Verificação e evidências de engenharia
+A camada de mensageria separa a lógica de negócio dos fornecedores de mensageria. O envio é modelado por meio de um contrato independente de provedor (`IMessageProvider`), que devolve um `ProviderResult` padronizado (`SENT`, `PENDING` ou `FAILED`). Assim, uma falha de entrega é tratada como dado, e não como exceção.
 
-A auditoria técnica identificou o seguinte inventário:
+```mermaid
+flowchart LR
+    ENG[Motor de decisão] --> DISP[Despachante de comunicação]
+    DISP --> IFACE[IMessageProvider]
+    IFACE --> ZAPI[Adaptador Z-API]
+    IFACE --> META[Adaptador Meta Cloud API]
+    IFACE --> SHADOW[Provedor sombra]
+    RES[ProviderResolver] -->|empresa + canal| ROUTE[(Roteamento de provedores)]
+    RES --> ACC[(Contas de provedores)]
+    RES --> VAULT[(Supabase Vault)]
+    RES --> FACT[ProviderFactory]
+    FACT --> IFACE
+```
 
-| Evidência | Escopo |
+*Arquitetura da camada de mensageria. O uso atual de cada caminho é descrito abaixo.*
+
+- **Resolução de provedor por empresa:** um `ProviderResolver` combina roteamento (`empresa + canal → provedor`), contas de provedor (configuração não secreta) e um cofre de segredos baseado no **Supabase Vault**. Uma `ProviderFactory` constrói então o adaptador concreto.
+- **Ports e adaptadores:** interfaces de repositório e de armazenamento de segredos, com implementações em PostgreSQL/Supabase. Uma chave estrangeira composta impede que uma empresa referencie a conta de provedor de outra, e os valores secretos são mascarados nas representações dos objetos.
+- **Adaptadores:**
+  - **Z-API**: a integração com o WhatsApp utilizada nos fluxos validados de conversa e agendamento, incluindo botões interativos com alternativa automática para texto simples.
+  - **Meta WhatsApp Cloud API**: adaptador para mensagens de texto baseado em configuração por empresa e credenciais no Vault, coberto por testes unitários.
+  - **Provedor sombra**: registra decisões sem enviar mensagens; utilizado pelo motor de decisão de comunicação.
+- **Ferramentas administrativas:** endpoints REST e interface React para cadastrar, editar e rotacionar credenciais de provedores por empresa, validados de ponta a ponta no banco de dados de produção e no Vault.
+- **Uso atual:** os fluxos validados de conversa e de lembretes enviam diretamente pela integração com a Z-API. O resolver e a factory rodam no ambiente implantado em modo de observação, identificando o provedor configurado de cada empresa sem enviar mensagens, e o motor de decisão despacha pelo provedor sombra. Migrar o envio real para o caminho resolver/factory é a próxima etapa da transição gradual.
+- **Extensibilidade:** um novo provedor exige uma classe adaptadora e uma entrada na factory. Roteamento, armazenamento de credenciais e regras de negócio permanecem inalterados.
+
+## Intervenção humana, concorrência e tratamento de falhas
+
+A automação precisa saber quando parar.
+
+**Na aplicação implantada**
+
+- **Transferência para atendimento humano:** pedidos explícitos para falar com uma pessoa, detectados por regras e pelos agentes, silenciam o robô naquela conversa. As respostas automáticas são retomadas após a reativação pelo painel.
+- **Integridade transacional:** bloqueio de linhas e atualizações atômicas protegem agendamentos, reagendamentos e fechamentos de agenda.
+- **Isolamento de falhas:** o caminho do LLM tem novas tentativas e rotas alternativas seguras; caminhos opcionais de observação rodam em limites de erro isolados e nunca interrompem o ciclo principal de lembretes; os adaptadores de provedores devolvem resultados estruturados em vez de lançar exceções em falhas de entrega esperadas.
+
+**Iteração mais recente (implementada e testada, em implantação)**
+
+- **Controle fail-closed:** o estado do robô é modelado como **ativo / silenciado / desconhecido**. O estado desconhecido é tratado como bloqueado, de modo que a automação nunca prossegue quando a permissão não pode ser confirmada, e a reativação é exclusivamente manual.
+- **Concorrência:** bloqueios consultivos (*advisory locks*) por conversa no PostgreSQL serializam mensagens simultâneas do mesmo cliente.
+- **Nova verificação antes do envio:** o estado de silêncio é verificado novamente imediatamente antes do envio, de modo que a assunção do atendimento por uma pessoa durante a geração da IA bloqueia a resposta pendente.
+
+O exemplo público [`hitl_fail_closed`](examples/hitl_fail_closed/) demonstra o modelo de estados fail-closed, o bloqueio por conversa e a nova verificação antes do envio com threads reais.
+
+## Qualidade de engenharia e validação
+
+| Evidência | Resultado |
 | --- | --- |
-| **158** arquivos de teste | Inventário de testes do backend |
-| **Aproximadamente 2.800** funções de teste | Identificação estática; **nem todas foram executadas ou confirmadas como aprovadas** |
-| **613 testes aprovados** | Execuções isoladas relatadas anteriormente na **árvore local do backend**, incluindo alterações pendentes (novembro de 2026); **não representam validação completa de produção** |
-| **17** migrações SQL versionadas | Inventário de migrações do banco de dados |
+| Suíte de regressão do backend | **2.716 testes aprovados** em uma execução de validação registrada (setembro de 2026), abrangendo rotas, serviços, agentes, schema e migrações |
+| Validação real de ponta a ponta | Integração com o WhatsApp validada por meio de conversas e agendamentos reais de clientes: mensagem → agente de IA → PostgreSQL → API REST → painel React |
+| Validações em produção | Cadastro de empresa pelo administrador, gestão de credenciais de provedores e criação e rotação de segredos no Vault validados de ponta a ponta no ambiente de produção |
+| Teste de estresse | 500 ciclos consecutivos do motor de decisão em um banco PostgreSQL real: 0 exceções, 0 duplicidades, 0 regressões de estado |
+| Evolução do banco de dados | 17 migrações SQL versionadas, snapshots de schema e uma ferramenta de validação de schema que compara o estado esperado com o estado real do banco |
+| Auditabilidade | Logs de auditoria com dados anteriores e posteriores e autoria para operações de escrita sensíveis |
 
-Os exemplos públicos têm suas **próprias** suítes isoladas com pytest, dados fictícios, dependências simuladas, sem credenciais de produção e sem necessidade de rede. Nas execuções locais, todos os testes foram aprovados: **675** (`deterministic_intent`), **432** (`guarded_llm_router`) e **188** (`hitl_fail_closed`), **1.295** no total. Consulte a [seção 10](#10-exemplos-públicos-de-engenharia).
+**Práticas de engenharia:** incrementos pequenos e revisáveis, com testes dedicados; mudanças de schema entregues por migrações com verificações prévias; novos comportamentos introduzidos em modo de observação ou modo sombra antes de assumirem autoridade; bugs de produção reproduzidos com testes de regressão antes da correção.
 
-## 9. Estado da implementação
+<a id="10-exemplos-públicos-de-engenharia"></a>
 
-| Indicador | Significado |
-| --- | --- |
-| ✅ | Presente na versão implantada do código; **não necessariamente validado ponta a ponta em produção** |
-| 🧪 | Implementado e testado localmente; não implantado |
-| 🟡 | Implementado parcialmente ou limitado a um fluxo não ativo / modo sombra |
-| 📂 | Publicado neste repositório (`examples/`) |
-| 📋 | Planejado para o portfólio público |
-
-| Capacidade | Estado |
-| --- | --- |
-| Painel administrativo React e conectividade com a API | ✅ |
-| Orquestrador de intenções e agentes conversacionais especializados | ✅ |
-| Sessões de agendamento, expiração e prevenção de ciclos repetitivos | ✅ |
-| Agendadores de lembretes e horários | ✅ |
-| Controle binário de silêncio existente e atendimento humano | ✅ |
-| Motor de decisão de comunicação (modo sombra): avalia agendamentos e registra decisões de mensagens sem enviá-las | 🟡 |
-| Interpretação determinística avançada de intenções | 🧪 |
-| HITL de três estados com fail-closed, reativação exclusivamente manual garantida e verificação antes do envio | 🧪 |
-| Bloqueio consultivo (*advisory lock*) por conversa | 🧪 |
-| Proteção HMAC recente para webhook da Meta | 🧪 |
-| Integração com MetaProvider | 🟡 |
-| Três exemplos públicos independentes de código (1.295 testes aprovados) | 📂 |
-| GIF da interface revisado quanto à privacidade | 📋 |
-
-As alterações mais recentes do backend ainda não foram implantadas. Suas proteções não devem ser apresentadas como ativas no deploy do Render. A implantação do frontend e as verificações de integridade/conectividade não comprovam testes completos de aceitação de todo o sistema.
-
-## 10. Exemplos públicos de engenharia
+## Exemplos públicos de engenharia
 
 A aplicação completa, seus prompts proprietários, regras de agendamento, configurações internas e integrações de produção permanecem privados. Três exemplos **reescritos de maneira independente** estão publicados neste repositório:
 
 | Exemplo | O que demonstra | Dependências | Testes locais |
 | --- | --- | --- | --- |
 | [`examples/deterministic_intent/`](examples/deterministic_intent/) | Classificação de sim/não, cancelamento, negação, incerteza e respostas a lembretes | Biblioteca padrão do Python + pytest | 675 aprovados |
-| [`examples/guarded_llm_router/`](examples/guarded_llm_router/) | Rótulos restritos, verificações determinísticas prévias, LLM simulado injetável, tentativas e rota alternativa | Biblioteca padrão do Python + pytest | 432 aprovados |
-| [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/) | Estados ativo/silenciado/desconhecido, fail-closed, bloqueios por conversa em memória e verificação antes do envio | Biblioteca padrão do Python + pytest | 188 aprovados |
+| [`examples/guarded_llm_router/`](examples/guarded_llm_router/) | Rótulos restritos, verificações determinísticas prévias, LLM simulado injetável, novas tentativas e rota alternativa | Biblioteca padrão do Python + pytest | 432 aprovados |
+| [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/) | Estados ativo/silenciado/desconhecido, fail-closed, bloqueios por conversa em memória e nova verificação antes do envio | Biblioteca padrão do Python + pytest | 188 aprovados |
 
-**Esses exemplos estão publicados aqui; a publicação não significa que o SaaS completo esteja operacional em produção.** Eles usam código novo e dados fictícios, sem copiar arquivos proprietários. Não são necessárias chaves de API, SDKs externos, banco de dados ativo ou serviços pagos para executar os testes. As suítes de testes foram executadas no Python 3.14; a compatibilidade com Python 3.10+ foi verificada apenas sintaticamente.
+**1.295 testes aprovados** nos três exemplos. Eles usam código novo e dados fictícios, sem copiar arquivos proprietários. Não são necessárias chaves de API, SDKs externos, banco de dados ativo ou serviços pagos para executá-los. As suítes de testes foram executadas no Python 3.14; a compatibilidade com Python 3.10+ foi verificada sintaticamente.
 
-### Demonstração
+Consulte a [Demonstração](#demonstração) para ver execuções animadas de cada exemplo.
 
-Animações curtas geradas a partir da saída real dos exemplos em Python, com dados fictícios.
+<a id="9-estado-da-implementação"></a>
 
-[![Demonstração animada de deterministic_intent: quatro respostas fictícias de clientes e a decisão tomada em cada uma](media/deterministic_intent_pt-BR.gif)](examples/deterministic_intent/)
+## Escopo do projeto
 
-**`deterministic_intent`**: confirmação, contradição, cancelamento e uma pergunta hipotética que não dispara nenhuma ação, a partir da saída de `python -m deterministic_intent`. Código: [`examples/deterministic_intent/`](examples/deterministic_intent/).
+- **Plataforma privada, exemplos públicos:** o código-fonte completo do NEXMAGNI Flow é proprietário. Este repositório documenta sua arquitetura e publica exemplos independentes de técnicas selecionadas.
+- **Implantação das salvaguardas recentes:** o controle fail-closed de três estados, o bloqueio por conversa, a nova verificação antes do envio, a interpretação determinística ampliada e um webhook de entrada da Meta em modo de observação estão implementados e testados no código privado e em processo de implantação no ambiente publicado.
+- **Provedores de mensageria:** conversas e agendamentos pelo WhatsApp foram validados por meio da integração com a Z-API. O resolver e a factory multiprovider rodam em modo de observação, e o adaptador da Meta Cloud API está implementado e coberto por testes unitários, pronto para o provisionamento do canal.
+- **Separação entre empresas:** a separação de dados entre empresas é garantida na camada de aplicação, por meio de consultas filtradas por empresa. Políticas de segurança em nível de linha (RLS) por empresa no banco de dados fazem parte do roteiro de reforço de segurança.
 
-[![Demonstração animada de guarded_llm_router: LLM simulado, tentativa de injeção de prompt, fallback após timeouts e encaminhamento a um humano](media/guarded_llm_router_pt-BR.gif)](examples/guarded_llm_router/)
-
-**`guarded_llm_router`**: regras primeiro e um LLM **simulado** (sem chamadas de API). Uma tentativa de injeção de prompt continua limitada a um de quatro rótulos, timeouts repetidos terminam no fallback `SERVICE_INFO` e um pedido para falar com uma pessoa vai para `HUMAN_HANDOFF` sem chamar o modelo. Código: [`examples/guarded_llm_router/`](examples/guarded_llm_router/).
-
-[![Demonstração animada de hitl_fail_closed: uma execução roteirizada com silenciamento durante a geração, aprovação vencida, falha de armazenamento, estado ilegível e reativação humana](media/hitl_fail_closed_pt-BR.gif)](examples/hitl_fail_closed/)
-
-**`hitl_fail_closed`**: uma execução roteirizada com threads reais. Silenciar o robô durante a geração bloqueia a resposta pendente, uma aprovação vencida é rejeitada, uma falha de gravação é informada em vez de tratada como bloqueio, o estado ilegível bloqueia a automação e somente uma aprovação humana válida a reativa. Código: [`examples/hitl_fail_closed/`](examples/hitl_fail_closed/).
-
-## 11. Prévia da interface (planejada)
-
-A interface administrativa inclui gerenciamento de empresas e serviços, visualizações relacionadas a agendamentos e funcionalidades de CRM. Está prevista uma demonstração curta e silenciosa com **ScreenToGif**, além de capturas de tela selecionadas, após revisão de privacidade quadro a quadro.
-
-Os materiais visuais não deverão expor registros de clientes, e-mails de acesso, telefones, endereços, perfis de redes sociais, credenciais ou outras informações sensíveis. Uma gravação da interface não comprova validação ponta a ponta da automação do backend.
-
-## 12. Desenvolvedora e escopo do repositório
-
-Desenvolvido por estudante do **Bacharelado em Ciência da Computação na Universidade Cruzeiro do Sul, São Paulo, Brasil, com previsão de conclusão no final de 2026**, com foco prático em engenharia backend com Python, FastAPI, integração de APIs, automação empresarial e IA conversacional.
-
-Este repositório é um **portfólio técnico**, não uma oferta de produto SaaS comercial plenamente operacional. A aplicação completa permanece proprietária e privada.
-
----
-
-## 13. Autora
+## Autora
 
 **Neusa M.** · Desenvolvedora Backend Python · Engenheira de Automação com IA · Desenvolvedora de Agentes de IA
+
+Estudante do Bacharelado em Ciência da Computação na Universidade Cruzeiro do Sul, São Paulo, Brasil. Previsão de conclusão: final de 2026. Foco prático em engenharia backend com Python, FastAPI, integração de APIs, automação empresarial e IA conversacional.
 
 - **E-mail:** [contact.neusam21@gmail.com](mailto:contact.neusam21@gmail.com)
 - **GitHub:** [github.com/NeusaM21](https://github.com/NeusaM21)
 - **LinkedIn:** [linkedin.com/in/neusam21](https://www.linkedin.com/in/neusam21/)
 
-## 14. Licença e utilização
+## Licença
 
-**Todos os direitos reservados.** Nenhuma licença de código aberto é concedida. O acesso público ao repositório não concede, por si só, permissão para reproduzir, modificar ou redistribuir seu conteúdo. Qualquer licenciamento futuro dos exemplos independentes será decidido separadamente. Para solicitar permissão, entre em contato com a autora por e-mail.
+**Todos os direitos reservados.** Consulte o arquivo [`LICENSE`](LICENSE). Nenhuma licença de código aberto é concedida. O acesso público a este repositório não concede, por si só, permissão para reproduzir, modificar ou redistribuir seu conteúdo. Para solicitar permissão, entre em contato com a autora por e-mail.
 
 ---
 
-*Versão em inglês americano: [README.md](README.md). As duas versões apresentam informações técnicas, indicadores de estado e diagramas equivalentes.*
+*Versão em inglês americano: [README.md](README.md).*
 
 <p align="center">
   <a href="https://github.com/NeusaM21">
